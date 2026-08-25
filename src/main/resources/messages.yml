@@ -1,0 +1,286 @@
+messages:
+  plugin-enabled:
+    - '&7'
+    - '&aCloverReports плагин включён!'
+    - '&7'
+  plugin-disabled:
+    - '&7'
+    - '&cCloverReports плагин выключён!'
+    - '&7'
+  not-player:
+    - '&7'
+    - '&cТолько игроки могут использовать эту команду.'
+    - '&7'
+  report-usage:
+    - '&7'
+    - '&#6ee99e ⛈  &#5ec285|  &#6ee99e/report (ник игрока)'
+    - '&7'
+  viewreports-usage:
+    - '&7'
+    - '&#6ee99e ⛈  &#5ec285|  &#6ee99e/viewreports [страница]'
+    - '&#6ee99e ⛈  &#5ec285|  &#6ee99e/viewreports player <ник> [страница]'
+    - '&#6ee99e ⛈  &#5ec285|  &#6ee99e/viewreports history [player=] [moderator=] [reason=] [action=] [from=ГГГГ-ММ-ДД] [to=ГГГГ-ММ-ДД] [page=]'
+    - '&7'
+  cloverreports-usage:
+    - '&7'
+    - '&#72E96E ❣  &#66C25E|  &#6EE974/cloverreports reload'
+    - '&#72E96E ❣  &#66C25E|  &#6EE974/cloverreports backup'
+    - '&#72E96E ❣  &#66C25E|  &#6EE974/cloverreports note <ник> <заметка|clear>'
+    - '&#72E96E ❣  &#66C25E|  &#6EE974/cloverreports logs <ник>'
+    - '&#72E96E ❣  &#66C25E|  &#6EE974/cloverreports export <csv|json> [фильтры]'
+    - '&7'
+  already-reported:
+    - '&7'
+    - '&#E9C66E ⓪  &#C2A65E|  &#E9C66EВы уже подали жалобу на этого игрока'
+    - '&7'
+  already-punished:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aИгрок уже наказан, кинуть на него репорт не получится!'
+    - '&7'
+  cannot-report-yourself:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aВы не можете кинуть репорт на самого себя!'
+    - '&7'
+  report-sent:
+    - '&7'
+    - '&#86e96e ✔  &#6dbf58|  &#86e96eРепорт на %player% отправлен!'
+    - '&7'
+  report-error:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aОшибка при отправке репорта!'
+    - '&7'
+  report-cooldown:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aПодождите ещё &#ff4d4d&l%time% сек. &#ff5a5aперед следующим
+    репортом'
+    - '&7'
+  false-report-cooldown:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aПодождите ещё &#ff4d4d&l%time% сек. &#ff5a5aперед следующим репортом'
+    - ' &#ff5a5a       Закрытых без наказания: &#ffb8b8%closed_percent%% &7(%closed%/%reviewed%)'
+    - '&7'
+  false-report-blocked:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aВаши репорты временно ограничены'
+    - '&#ff5a5a       Закрытых без наказания: &#ffb8b8%closed_percent%% &7(%closed%/%reviewed%)'
+    - '&7'
+  multiple-reports:
+    - '&7'
+    - '&eИгрок %player% получил уже %count% жалоб! Напишите /viewreports для проверки.'
+    - '&7'
+    - '&#e9a262 🔥  &#c28d5e|  &#e9a262Игрок &l%player% &#e9a262получил уже &l%count%
+    &#e9a262жалоб!'
+    - '&#e9a262 Напишите &l/viewreports &#e9a262для проверки.'
+    - '&7'
+  notify-report:
+    - '&7'
+    - '&#e6cf69 ☄  &#bfad58|  &#e6cf69Новый репорт на &#bfad58&l%player% &#bfad58(%count%)'
+    - '&#e6cf69 Нажмите, чтобы открыть репорты на этого игрока.'
+    - '&7'
+  notify-report-hover:
+    - '&#e6cf69 Открыть репорты на %player%'
+  no-permission:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aУ вас нет прав для использования этой команды'
+    - '&7'
+  reload-success:
+    - '&7'
+    - '&#86e96e ✔  &#6dbf58|  &#86e96e&lCloverReports &#86e96eуспешно перезагружен!'
+    - '&7'
+  reload-error:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aНе удалось перезагрузить CloverReports'
+    - '&7'
+  report-in-work:
+    - '&7'
+    - '&#E9C66E ⏳  &#C2A65E|  &#E9C66EРепорт на %player% уже разбирает &#fff0b8&l%moderator%'
+    - '&7'
+  note-updated:
+    - '&7'
+    - '&#86e96e ✔  &#6dbf58|  &#86e96eЗаметка для %player% добавлена: &#d8ccff%note%'
+    - '&7'
+  note-cleared:
+    - '&7'
+    - '&#86e96e ✔  &#6dbf58|  &#86e96eЗаметка для %player% очищена'
+    - '&7'
+  note-limit:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aУ %player% уже максимум заметок: &#ff4d4d&l%limit%'
+    - '&#ff5a5a       Сначала очистите старые через &#ffb8b8/cloverreports note %player% clear'
+    - '&7'
+  note-input-start:
+    - '&7'
+    - '&#D8CCFF ✎  &#BFA8FF|  &#D8CCFFНапишите заметку по %player% в чат'
+    - '&#D8CCFF       Для отмены нажмите &#FFFFFFПКМ по воздуху или блоку'
+    - '&7'
+  note-input-cancelled:
+    - '&7'
+    - '&#E9C66E ⏪  &#C2A65E|  &#E9C66EДобавление заметки по %player% отменено'
+    - '&7'
+  note-input-expired:
+    - '&7'
+    - '&#E9C66E ⏳  &#C2A65E|  &#E9C66EВремя добавления заметки по %player% вышло'
+    - '&7'
+  note-no-active:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aАктивных репортов на %player% не найдено'
+    - '&7'
+  logs-empty:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aЛогов по %player% пока нет'
+    - '&7'
+  logs-header:
+    - '&7'
+    - '&#72E96E ❣  &#66C25E|  &#6EE974Логи действий по %player% &7(%page%/%total%, %count%)'
+    - '&7'
+  logs-line:
+    - '&7'
+    - '&8#%id% / дело #%case_id% &8| &#BFBFBF%time% &8| &#FFFFFF%moderator% &8| &#E9C66E%action% &8| &#FFB8B8%player% &8| &#FFB8B8%reason% &8| &#D8CCFF%note%'
+    - '&7'
+  action-error:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aНе удалось выполнить действие'
+    - '&7'
+  teleport-message:
+    - '&7'
+    - '&#6EE9E5 🔔  &#58B1BF|  &#6EE9E5Телепортация к игроку &l%player%&#6EE9E5...'
+    - '&7'
+  player-not-found:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aИгрок %player% не найден онлайн'
+    - '&7'
+  report-deleted:
+    - '&7'
+    - '&#86e96e ✔  &#6dbf58|  &#86e96eРепорт(ы) на игрока %player% закрыты!'
+    - '&#86e96e       Причина: &#ffffff%reason%'
+    - '&7'
+  banned:
+    - '&7'
+    - '&#86e96e ✔  &#6dbf58|  &#86e96eИгрок %player% забанен!'
+    - '&7'
+  ban-announce:
+    - '&7'
+    - '&#E9E16E ★  &#BFBD58|  &#E9E16EБлагодаря вашим наблюдениям нарушитель &l%player%
+    &#E9E16Eбыл забанен, спасибо за вашу бдительность!'
+    - '&7'
+  ban-reason: "Забанен по жалобе"
+  invalid-player-name:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aНекорректный ник игрока: &#ffb8b8%player%'
+    - '&7'
+  reason-too-long:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aПричина не должна быть длиннее &#ffb8b8%limit% &#ff5a5aсимволов'
+    - '&7'
+  note-too-long:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aЗаметка не должна быть длиннее &#ffb8b8%limit% &#ff5a5aсимволов'
+    - '&7'
+  report-session-expired:
+    - '&7'
+    - '&#E9C66E ⏳  &#C2A65E|  &#E9C66EСессия разбора репортов на %player% истекла'
+    - '&7'
+  punishment-command-error:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aНе все команды наказания для %player% выполнились успешно'
+    - '&7'
+  backup-started:
+    - '&7'
+    - '&#86e96e ⏳  &#6dbf58|  &#86e96eСоздание резервной копии началось'
+    - '&7'
+  backup-success:
+    - '&7'
+    - '&#86e96e ✔  &#6dbf58|  &#86e96eРезервная копия создана: &#ffffff%file%'
+    - '&#86e96e       Путь: &#ffffff%path%'
+    - '&7'
+  backup-error:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aНе удалось создать резервную копию'
+    - '&#ff9089|  &#ff5a5aОшибка: &#ffb8b8%error%'
+    - '&7'
+  backup-unsupported:
+    - '&7'
+    - '&#E9C66E ⚠  &#C2A65E|  &#E9C66EРезервная копия доступна только для SQLite'
+    - '&#E9C66E       Сейчас используется: &#fff0b8%storage%'
+    - '&7'
+  history-filter-invalid:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aНекорректный фильтр: &#ffb8b8%filter%'
+    - '&#ff5a5a       Дата указывается в формате ГГГГ-ММ-ДД'
+    - '&7'
+  chat-input-busy:
+    - '&7'
+    - '&#E9C66E ⏳  &#C2A65E|  &#E9C66EСначала завершите текущий ввод в чате'
+    - '&7'
+  evidence-input-start:
+    - '&7'
+    - '&#6EE9E5 ☄  &#58B1BF|  &#6EE9E5Отправьте в чат ссылку на скриншот или видео'
+    - '&#6EE9E5       Для отмены нажмите &#ffffffПКМ'
+    - '&7'
+  evidence-input-cancelled:
+    - '&7'
+    - '&#E9C66E ⏪  &#C2A65E|  &#E9C66EДобавление ссылки отменено'
+    - '&7'
+  evidence-input-expired:
+    - '&7'
+    - '&#E9C66E ⏳  &#C2A65E|  &#E9C66EВремя ввода ссылки истекло'
+    - '&7'
+  evidence-invalid:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aНекорректная или запрещённая ссылка: &#ffb8b8%status%'
+    - '&7'
+  evidence-added:
+    - '&7'
+    - '&#86e96e ✔  &#6dbf58|  &#86e96eСсылка добавлена к репорту'
+    - '&7'
+  evidence-removed:
+    - '&7'
+    - '&#86e96e ✔  &#6dbf58|  &#86e96eСсылка удалена из репорта'
+    - '&7'
+  report-submitting:
+    - '&7'
+    - '&#E9C66E ⏳  &#C2A65E|  &#E9C66EОтправляем репорт...'
+    - '&7'
+  evidence-header:
+    - '&7'
+    - '&#6EE9E5 ☄  &#58B1BF|  &#6EE9E5Доказательства по %player%, дело #%case_id%'
+    - '&7'
+  evidence-link:
+    - '&7'
+    - '&#BFBFBF%reporter% &8→ &#6EE9E5открыть доказательство'
+    - '&7'
+  evidence-empty:
+    - '&7'
+    - '&#E9C66E ⚠  &#C2A65E|  &#E9C66EВ деле #%case_id% нет доступных доказательств'
+    - '&7'
+  evidence-omitted:
+    - '&7'
+    - '&#E9C66E ⚠  &#C2A65E|  &#E9C66EНе показано ссылок: %count%'
+    - '&7'
+  export-usage:
+    - '&7'
+    - '&#72E96E ❣  &#66C25E|  &#6EE974/cloverreports export <csv|json> [player=] [moderator=] [reason=] [action=] [from=] [to=]'
+    - '&7'
+  export-started:
+    - '&7'
+    - '&#86e96e ⏳  &#6dbf58|  &#86e96eЭкспорт %format% запущен'
+    - '&7'
+  export-success:
+    - '&7'
+    - '&#86e96e ✔  &#6dbf58|  &#86e96eЭкспортировано строк: &#ffffff%rows%'
+    - '&#86e96e       Файл: &#ffffff%file%'
+    - '&#86e96e       Путь: &#ffffff%path%'
+    - '&7'
+  export-already-running:
+    - '&7'
+    - '&#E9C66E ⏳  &#C2A65E|  &#E9C66EВаш предыдущий экспорт ещё выполняется'
+    - '&7'
+  export-limit:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aЭкспорт превышает лимит в &#ffb8b8%limit% &#ff5a5aстрок'
+    - '&7'
+  export-error:
+    - '&7'
+    - '&#c72b2b ❌  &#ff9089|  &#ff5a5aНе удалось экспортировать логи'
+    - '&#ff5a5a       Ошибка: &#ffb8b8%error%'
+    - '&7'

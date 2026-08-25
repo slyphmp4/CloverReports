@@ -1,0 +1,66 @@
+name: CloverReports
+main: com.slyph.cloverreports.CloverReports
+version: ${version}
+api-version: '26.2'
+authors: [slyph]
+description: Плагин для репортов
+commands:
+  report:
+    description: Подать жалобу через GUI
+    usage: /<command> <игрок>
+    permission: cloverreports.report
+  viewreports:
+    description: Просмотр дел и истории
+    usage: /<command> [страница|history|player]
+    aliases: [rs, reports]
+    permission: cloverreports.view
+  cloverreports:
+    description: Управление CloverReports
+    usage: /<command> reload|backup|note|logs|export
+    aliases: [cr]
+permissions:
+  cloverreports.report:
+    description: Разрешение на отправку репортов
+    default: true
+  cloverreports.report.evidence:
+    description: Разрешение прикладывать ссылку к репорту
+    default: true
+  cloverreports.report.cooldown.bypass:
+    description: Разрешение обходить задержку репортов
+    default: op
+  cloverreports.report.false.bypass:
+    description: Разрешение обходить защиту от ложных репортов
+    default: op
+  cloverreports.view:
+    description: Разрешение на просмотр репортов
+    default: op
+  cloverreports.evidence.view:
+    description: Разрешение на просмотр доказательств
+    default: op
+  cloverreports.notify:
+    description: Разрешение на получение уведомлений о репортах
+    default: op
+  cloverreports.reload:
+    description: Разрешение на перезагрузку плагина
+    default: op
+  cloverreports.backup:
+    description: Разрешение на создание резервной копии базы
+    default: op
+  cloverreports.note:
+    description: Разрешение на заметки модераторов
+    default: op
+  cloverreports.logs:
+    description: Разрешение на просмотр логов репортов
+    default: op
+  cloverreports.export:
+    description: Разрешение на экспорт логов
+    default: op
+  cloverreports.action.delete:
+    description: Разрешение на закрытие дел через GUI
+    default: op
+  cloverreports.action.teleport:
+    description: Разрешение на телепортацию через GUI
+    default: op
+  cloverreports.action.ban:
+    description: Разрешение на наказание через GUI
+    default: op

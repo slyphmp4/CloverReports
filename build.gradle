@@ -7,27 +7,25 @@ group = 'com.slyph'
 version = '1.1.0'
 
 def paperApiVersion = findProperty('paperApiVersion') ?: '26.2.build.117-stable'
-def paperApiGroup = findProperty('paperApiGroup') ?: 'io.papermc.paper'
 
 repositories {
     mavenCentral()
     maven {
-        name = 'papermc'
         url = 'https://repo.papermc.io/repository/maven-public/'
+    }
+    maven {
+        url = 'https://libraries.minecraft.net/'
     }
 }
 
 dependencies {
-    compileOnly "${paperApiGroup}:paper-api:${paperApiVersion}"
-
+    compileOnly "io.papermc.paper:paper-api:${paperApiVersion}"
     implementation 'com.zaxxer:HikariCP:5.1.0'
-    implementation 'org.xerial:sqlite-jdbc:3.46.1.0'
-    implementation 'com.mysql:mysql-connector-j:9.0.0'
-    implementation 'com.google.code.gson:gson:2.11.0'
-
-    testImplementation "${paperApiGroup}:paper-api:${paperApiVersion}"
-    testImplementation platform('org.junit:junit-bom:5.11.0')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
+    implementation 'com.mysql:mysql-connector-j:8.4.0'
+    implementation 'org.xerial:sqlite-jdbc:3.45.3.0'
+    testImplementation "io.papermc.paper:paper-api:${paperApiVersion}"
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testImplementation 'org.yaml:snakeyaml:2.2'
 }
 
 java {
@@ -39,34 +37,48 @@ java {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 25
+    options.compilerArgs += ['-Xlint:all', '-Xlint:-deprecation', '-Xlint:-classfile']
 }
 
-processResources {
-    def props = [version: project.version]
-    inputs.properties props
-    filteringCharset = 'UTF-8'
-    filesMatching('plugin.yml') {
-        expand props
+def testRuntimeRoot = file("${System.getProperty('java.io.tmpdir')}/cloverreports-tests-${Math.abs(projectDir.absolutePath.hashCode())}")
+def testRuntimeMain = new File(testRuntimeRoot, 'main')
+def testRuntimeTests = new File(testRuntimeRoot, 'test')
+
+tasks.register('prepareTestRuntime', Sync) {
+    dependsOn tasks.named('testClasses')
+    into testRuntimeRoot
+    from(sourceSets.main.output) {
+        into 'main'
+    }
+    from(sourceSets.test.output) {
+        into 'test'
     }
 }
 
-test {
+tasks.named('test') {
+    dependsOn tasks.named('prepareTestRuntime')
     useJUnitPlatform()
+    maxHeapSize = '512m'
+    testClassesDirs = files(testRuntimeTests)
+    classpath = files(testRuntimeTests, testRuntimeMain) + configurations.testRuntimeClasspath
 }
 
-shadowJar {
-    archiveClassifier.set('')
-    relocate 'com.zaxxer.hikari', 'com.slyph.cloverreports.libs.hikari'
-    relocate 'org.sqlite', 'com.slyph.cloverreports.libs.sqlite'
-    relocate 'com.mysql', 'com.slyph.cloverreports.libs.mysql'
-    relocate 'com.google.gson', 'com.slyph.cloverreports.libs.gson'
-    mergeServiceFiles()
+processResources {
+    filteringCharset = 'UTF-8'
+    filesMatching('plugin.yml') {
+        expand(version: project.version)
+    }
 }
 
-jar {
+tasks.named('jar') {
     enabled = false
 }
 
-build {
-    dependsOn shadowJar
+tasks.named('shadowJar') {
+    archiveClassifier.set('')
+    mergeServiceFiles()
+}
+
+tasks.named('build') {
+    dependsOn tasks.named('shadowJar')
 }

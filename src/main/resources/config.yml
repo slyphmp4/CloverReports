@@ -1,0 +1,78 @@
+server:
+  name: "MyServer"
+  id: "server-1"
+
+storage:
+  type: "local"
+  connection-timeout-ms: 5000
+
+sqlite:
+  file: "reports.db"
+
+backup:
+  folder: "backups"
+
+mysql:
+  host: "localhost"
+  port: 3306
+  database: "cloverreports"
+  username: "root"
+  password: "password"
+  maximum-pool-size: 10
+  socket-timeout-ms: 10000
+  schema-lock-timeout-seconds: 120
+  use-ssl: false
+
+report:
+  cooldown-seconds: 60
+  online-only: false
+  max-reason-length: 256
+  punished-block-seconds: 300
+  evidence:
+    max-url-length: 2048
+    require-https: false
+    allowed-hosts: []
+    allowed-ports: [80, 443]
+    input-timeout-seconds: 120
+    max-chat-links: 25
+
+note-input:
+  timeout-seconds: 120
+  max-length: 512
+
+review:
+  timeout-seconds: 300
+  list-refresh-seconds: 5
+
+false-reports:
+  enabled: true
+  min-reviewed-reports: 5
+  max-closed-percent: 80
+  statistics-days: 30
+  penalty-cooldown-seconds: 300
+  block-reporting: false
+  block-duration-seconds: 3600
+
+actions:
+  teleport-spectator: true
+  processing-timeout-seconds: 120
+
+close-reasons:
+  - "Недостаточно доказательств"
+  - "Игрок не нарушал"
+  - "Дубликат"
+  - "Уже обработано"
+
+punishments:
+  ban:
+    commands:
+      - "ban %player% %reason%"
+
+cleanup:
+  enabled: true
+  resolved-days: 30
+  logs-days: 90
+
+export:
+  max-rows: 100000
+  batch-size: 1000

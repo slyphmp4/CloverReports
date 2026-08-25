@@ -1,0 +1,241 @@
+reasons:
+  cheats:
+    name: "Читы"
+    display: "&#FF4D4DЧиты"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  kill-aura:
+    name: "KillAura"
+    display: "&#FF4D4DKillAura"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  reach:
+    name: "Reach"
+    display: "&#FF6B4DReach"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  fly:
+    name: "Fly"
+    display: "&#FF884DFly"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  speed:
+    name: "Speed"
+    display: "&#FFAA4DSpeed"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  xray:
+    name: "X-Ray"
+    display: "&#FFCF4DX-Ray"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  autoclicker:
+    name: "Автокликер"
+    display: "&#FFE66DАвтокликер"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  macros:
+    name: "Макросы"
+    display: "&#FFE66DМакросы"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  botting:
+    name: "Боты"
+    display: "&#FFCF4DБоты"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  griefing:
+    name: "Гриферство"
+    display: "&#FF5A5AГриферство"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  base-destroy:
+    name: "Разрушение базы"
+    display: "&#FF765AРазрушение базы"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  theft:
+    name: "Кража ресурсов"
+    display: "&#FF965AКража ресурсов"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  traps:
+    name: "Ловушки для игроков"
+    display: "&#FFB45AЛовушки для игроков"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  spawn-grief:
+    name: "Порча спавна"
+    display: "&#FFD45AПорча спавна"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  illegal-items:
+    name: "Запрещенные предметы"
+    display: "&#F7FF5AЗапрещенные предметы"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  duping:
+    name: "Дюп"
+    display: "&#D8FF5AДюп"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  bug-abuse:
+    name: "Багоюз"
+    display: "&#B8FF5AБагоюз"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  economy-abuse:
+    name: "Абуз экономики"
+    display: "&#9EFF6EАбуз экономики"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  scam:
+    name: "Обман игроков"
+    display: "&#7DFF8BОбман игроков"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  real-money-trade:
+    name: "Реальная торговля"
+    display: "&#63EFA2Реальная торговля"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  ban-bypass:
+    name: "Обход наказания"
+    display: "&#63EFC2Обход наказания"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  alt-account:
+    name: "Мультиаккаунт"
+    display: "&#63EAEFМультиаккаунт"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  staff-impersonation:
+    name: "Выдача себя за персонал"
+    display: "&#63C8EFВыдача себя за персонал"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  fake-evidence:
+    name: "Поддельные доказательства"
+    display: "&#63A6EFПоддельные доказательства"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  advertising:
+    name: "Реклама"
+    display: "&#6E8CFFРеклама"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  phishing:
+    name: "Фишинг"
+    display: "&#8B7DFFФишинг"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  spam:
+    name: "Массовый спам"
+    display: "&#A56EFFМассовый спам"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  flood:
+    name: "Флуд"
+    display: "&#C36EFFФлуд"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  severe-insults:
+    name: "Тяжелые оскорбления"
+    display: "&#E06EFFТяжелые оскорбления"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  discrimination:
+    name: "Дискриминация"
+    display: "&#FF6EEAДискриминация"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  threats:
+    name: "Угрозы"
+    display: "&#FF6EBDУгрозы"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  doxxing:
+    name: "Раскрытие личных данных"
+    display: "&#FF6E9EРаскрытие личных данных"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  inappropriate-content:
+    name: "Неприемлемый контент"
+    display: "&#FF6E80Неприемлемый контент"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  inappropriate-build:
+    name: "Неприемлемая постройка"
+    display: "&#FF7D7DНеприемлемая постройка"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  lag-machine:
+    name: "Лаг-машина"
+    display: "&#FF9A7DЛаг-машина"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  server-crash:
+    name: "Попытка краша сервера"
+    display: "&#FFB67DПопытка краша сервера"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  command-abuse:
+    name: "Абуз команд"
+    display: "&#FFD27DАбуз команд"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  event-abuse:
+    name: "Абуз ивентов"
+    display: "&#FFE87DАбуз ивентов"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  combat-logout:
+    name: "Выход во время боя"
+    display: "&#E6FF7DВыход во время боя"
+    punishment:
+      commands:
+        - "ban %player% %reason%"
+  team-sabotage:
+    name: "Саботаж команды"
+    display: "&#C8FF7DСаботаж команды"
+    punishment:
+      commands:
+        - "ban %player% %reason%"

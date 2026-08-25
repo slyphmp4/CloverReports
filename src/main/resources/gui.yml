@@ -1,0 +1,378 @@
+gui:
+  limits:
+    active-report-entries: 20
+    history-entries: 20
+    note-entries: 20
+    evidence-entries: 5
+  ban-reason-selection:
+    title: '&#A10202⏺ Выбор причины для бана &#A10202'
+    reason:
+      display: ' &#FFFFFF✉ &l%reason% '
+      lore:
+        - ''
+        - ' &#BFBFBFЭта причина будет использована для бана '
+        - ''
+        - ' &#C9EFC8⏵ Нажмите, чтобы выбрать '
+        - ''
+    previous:
+      display: '&7'
+      lore:
+        - ' &#FFFFFF← &lНазад '
+        - ''
+        - ' &#BFBFBFОткрыть страницу %page% '
+        - ''
+    next:
+      display: '&7'
+      lore:
+        - ' &#FFFFFF→ &lВперед '
+        - ''
+        - ' &#BFBFBFОткрыть страницу %page% '
+        - ''
+    back:
+      display: '&7'
+      lore:
+        - ' &#FFFFFF← &lНазад '
+        - ''
+        - ' &#BFBFBFВернуться к действиям '
+        - ''
+  report-placeholder:
+    material: GRAY_STAINED_GLASS_PANE
+    display: '&8'
+    lore: []
+  main-title: '  &#434032⚐ &lСписок репортов &#434032(%page%/%total%)'
+  history-title: ' &#434032🔥 &lИстория репортов &#434032(%page%/%total%)'
+  filtered-title: '  &#434032⚐ &l%player% &#434032(%page%/%total%)'
+  filtered-history-title: ' &#434032🔥 &l%player% &#434032(%page%/%total%)'
+  filler:
+    display: '&7'
+  empty-reports:
+    display: '&7'
+    lore:
+      - ' &#F4B60B♪ &lРепортов нет '
+      - ''
+      - ' &#FADD8FДождитесь пока кто-то пожалуется '
+      - ''
+  empty-history:
+    display: '&7'
+    lore:
+      - ' &#F4B60B♫ &lАрхив репортов пуст '
+      - ''
+      - ' &#FADD8FПока никто никого не судил '
+      - ''
+  buttons:
+    history:
+      display: '&7'
+      lore:
+        - ' &#F4B60B♫ &lАрхив репортов '
+        - ''
+        - ' &#FADD8FНажмите, чтобы открыть архив всех репортов '
+        - ''
+    active:
+      display: '&7'
+      lore:
+        - ' &#51F40B⚑ &lАктивные репорты '
+        - ''
+        - ' &#AFFA8FНажмите, чтобы вернуться к активным репортам '
+        - ''
+  report-head:
+    display: ' &e⚡ %player% &7(#%count% жалоб)'
+    playtime-unknown: '&7Неизвестно'
+    lore-prefix:
+      - ''
+      - ' &#6AFF54☁ Сервер: &#6AFF54&l%server% '
+      - ' &#FFFC54⛏ Наиграно часов: &#FFA754&l%playtime% '
+      - ' &#FF6554⛈ Количество жалоб: &#FF3D26&l%count% '
+      - ''
+    status-new: '&#91FF6EНовый'
+    status-in-work: '&#FFD76EВ работе'
+    status-waiting-decision: '&#6EDCFFОжидает решения'
+    review-status-line: ' &#6EDCFF◆ Статус: &l%status% '
+    review-moderator-line: ' &#ABEDFF⚗ Разбирает: &#5EE4FF%moderator% '
+    case-id-line: ' &#6EDCFF⚡ Дело: &#FFFFFF#%case_id% '
+    report-list-prefix:
+      - ''
+      - ' &#FF9247✉ &lРепорты игроков &7(%count%) '
+    report-entry-lines:
+      - '   &#FF9247%number% &#FFC296%reporter% &8→ &#FFFFFF%reason% '
+    report-entry-separator:
+      - ''
+    report-list-omitted-lines:
+      - '   &8… &7Ещё репортов: %count% '
+    evidence-prefix:
+      - ''
+      - ' &#6EE9E5☄ &lДоказательства &7(%count%) '
+    evidence-line: ' &8▪ &#BFBFBF%reporter% &8→ &#6EE9E5%url% '
+    evidence-omitted-line: ' &8… &7Ещё ссылок: %count% '
+    notes-prefix:
+      - ''
+      - ' &#BFA8FF✎ &lЗаметки модераторов '
+    note-group-lines:
+      - ''
+      - ' &8▪ &#D8CCFF%moderator% &8(&7%count% зап.&8) '
+      - '   &8&m           &m'
+    note-entry-lines:
+      - '   &#BFA8FF%number% &7%time% &8→ &#FFFFFF%raw_note% '
+    note-entry-separator:
+      - ''
+    notes-suffix: []
+    lore-suffix:
+      - ''
+      - ' &#C9EFC8⏵ Нажмите для действий'
+      - ''
+  history-head:
+    display: ' &e⚡ %player% &7(#%count% закрыто)'
+    lore-prefix:
+      - ''
+      - ' &#6AFF54☁ Сервер: &#6AFF54&l%server% '
+      - ' &#FF6726☂ Закрытых репортов: &#FF4D00&l%count% '
+      - ''
+    case-id-line: ' &#6EDCFF⚡ Дело: &#FFFFFF#%case_id% '
+    audit-line: ' &7%action%: &f%moderator% &8| &f%time% '
+    resolution-line: '  &#FFCD75⚠ Причина: &#FFC145%resolution% '
+    report-list-prefix:
+      - ''
+      - ' &#26A5FF✉ &lРепорты игроков &7(%count%) '
+    report-entry-lines:
+      - '   &#26A5FF%number% &#6EDCFF%reporter% &8→ &#26FF80%reason% '
+    report-entry-separator:
+      - ''
+    report-list-omitted-lines:
+      - '   &8… &7Ещё репортов: %count% '
+    evidence-prefix:
+      - ''
+      - ' &#6EE9E5☄ &lДоказательства &7(%count%) '
+    evidence-line: ' &8▪ &#BFBFBF%reporter% &8→ &#6EE9E5%url% '
+    evidence-omitted-line: ' &8… &7Ещё ссылок: %count% '
+    notes-prefix:
+      - ''
+      - ' &#BFA8FF✎ &lЗаметки модераторов '
+    note-group-lines:
+      - ''
+      - ' &8▪ &#D8CCFF%moderator% &8(&7%count% зап.&8) '
+      - '   &8&m           &m'
+    note-entry-lines:
+      - '   &#BFA8FF%number% &7%time% &8→ &#FFFFFF%raw_note% '
+    note-entry-separator:
+      - ''
+    notes-suffix: []
+    action-closed: ' &#6EFF26🛡 Закрыто'
+    action-punished: ' &#FF3B3B⛈ Наказан'
+    action-unknown: ' &7✎ Обработано'
+    lore-suffix:
+      - ''
+      - ' &8* АРХИВ * '
+      - ''
+  close-reason-selection:
+    title: '&#35A102⏺ Причина закрытия &#35A102'
+    reason:
+      display: ' &#FFFFFF✉ &l%reason% '
+      lore:
+        - ''
+    previous:
+      display: '&7'
+      lore:
+        - ' &#FFFFFF← &lНазад '
+        - ''
+        - ' &#BFBFBFОткрыть страницу %page% '
+        - ''
+    next:
+      display: '&7'
+      lore:
+        - ' &#FFFFFF→ &lВперёд '
+        - ''
+        - ' &#BFBFBFОткрыть страницу %page% '
+        - ''
+        - ' &#BFBFBFРепорт будет закрыт без наказания '
+        - ' &#BFBFBFс выбранной причиной '
+        - ''
+        - ' &#C9EFC8⏵ Нажмите, чтобы закрыть '
+        - ''
+    back:
+      display: '&7'
+      lore:
+        - ' &#FFFFFF← &lНазад '
+        - ''
+        - ' &#BFBFBFВернуться к действиям '
+        - ''
+  action:
+    back:
+      display: '&7'
+      lore:
+        - ' &#FFFFFF← &lНазад '
+        - ''
+        - ' &#BFBFBFВернуться к списку репортов '
+        - ''
+    title: '&#0257A1⏺ Действия над &l%player% &#0257A1'
+    delete:
+      display: '&7'
+      lore:
+        - ' &#35FF2E✔ &lЗакрыть репорт '
+        - ''
+        - ' &#7AB479Вы закрываете репорт, тем самым '
+        - ' &#7AB479оставляя игрока без наказания '
+        - ''
+        - ' &#C9EFC8⏵ Нажмите, чтобы закрыть жалобу '
+        - ''
+    teleport:
+      display: '&7'
+      lore:
+        - ' &#2EC4FF🔔 &lТелепортироваться '
+        - ''
+        - ' &#79A4B4Вы телепортируетесь к игроку в режиме наблюдаьтеля '
+        - ' &#79A4B4и следите за тем, почему на него пожаловались '
+        - ''
+        - ' &#C8E7EF⏵ Нажмите, чтобы телепортироваться '
+        - ''
+    note:
+      display: '&7'
+      lore:
+        - ' &#D8CCFF✎ &lДобавить заметку '
+        - ''
+        - ' &#BFA8FFПосле нажатия напишите текст заметки '
+        - ' &#BFA8FFв чат, чтобы сохранить её в репорте '
+        - ''
+        - ' &#C9EFC8⏵ Нажмите, чтобы написать заметку '
+        - ''
+    evidence:
+      display: '&7'
+      lore:
+        - ' &#6EE9E5☄ &lДоказательства '
+        - ''
+        - ' &#79A4B4Ссылок в деле: &l%count% '
+        - ' &#79A4B4Дело: &l#%case_id% '
+        - ''
+        - ' &#C8E7EF⏵ Нажмите, чтобы открыть ссылки в чате '
+        - ''
+    ban:
+      display: '&7'
+      lore:
+        - ' &#FF2E2E☠ &lЗабанить игрока '
+        - ''
+        - ' &#CA6363Нажимая на эту кнопку, вы повторно подтверждаете '
+        - ' &#CA6363своё действие, чтобы забанить игрока, '
+        - ' &#CA6363по определенной причине '
+        - ''
+        - ' &#EFC8C8⏵ Нажмите, чтобы для подтверждения '
+        - ''
+  ban-confirm:
+    title: '&#A10202⏺ Подтверждение бана &#A10202'
+    confirm:
+      display: '&7'
+      lore:
+        - ' &#FF2E2E❌ &lЗабанить игрока '
+        - ''
+        - ' &#E1A8A8Причина: &l%reason% '
+        - ''
+        - ' &#CA6363Нажимая на кнопку, вы блокируете игрока '
+        - ' &#CA6363на данном сервере! '
+        - ''
+    cancel:
+      display: '&7'
+      lore:
+        - ' &#2EC4FF⏪ &lОтмена '
+        - ''
+        - ' &#79A4B4Отмена бана игрока '
+        - ''
+  nav:
+    back:
+      display: '&7'
+      lore:
+        - ' &#FFFFFF← &lНазад '
+        - ''
+        - ' &#BFBFBFВернуться на страницу назад '
+        - ''
+    forward:
+      display: '&7'
+      lore:
+        - ' &#FFFFFF→ &lВперед '
+        - ''
+        - ' &#BFBFBFВернуться на страницу вперед '
+        - ''
+  submission:
+    filler:
+      material: GRAY_STAINED_GLASS_PANE
+      display: '&7'
+      lore: []
+    reason-selection:
+      title: '&#0257A1⏺ Жалоба на &l%player% &#0257A1(%page%/%pages%)'
+      reason:
+        material: PAPER
+        display: ' &#FFFFFF✉ &l%reason% '
+        lore:
+          - ''
+          - ' &#BFBFBFВыбрать эту причину для жалобы '
+          - ''
+          - ' &#C9EFC8⏵ Нажмите, чтобы продолжить '
+          - ''
+      previous:
+        material: ARROW
+        display: ' &#FFFFFF← &lНазад '
+        lore:
+          - ''
+          - ' &#BFBFBFОткрыть страницу %page% '
+          - ''
+      next:
+        material: ARROW
+        display: ' &#FFFFFFВперёд → '
+        lore:
+          - ''
+          - ' &#BFBFBFОткрыть страницу %page% '
+          - ''
+      cancel:
+        material: BARRIER
+        display: ' &#FF5A5A✖ &lОтмена '
+        lore:
+          - ''
+          - ' &#BFBFBFЗакрыть меню без отправки '
+          - ''
+    confirmation:
+      title: '&#35A102⏺ Подтверждение жалобы &#35A102'
+      reason:
+        material: WRITABLE_BOOK
+        display: ' &#FFFFFFПричина: &l%reason% '
+        lore:
+          - ''
+          - ' &#BFBFBFВернитесь назад, чтобы сменить причину '
+          - ''
+      evidence-disabled:
+        material: BARRIER
+        display: ' &#FF5A5A🔒 &lВложения недоступны '
+        lore:
+          - ''
+          - ' &#BFBFBFУ вас нет права на добавление ссылок '
+          - ''
+      evidence-empty:
+        material: MAP
+        display: ' &#6EE9E5☄ &lДобавить доказательство '
+        lore:
+          - ''
+          - ' &#BFBFBFДобавьте ссылку на скриншот или видео '
+          - ''
+          - ' &#C8E7EF⏵ Нажмите и отправьте ссылку в чат '
+          - ''
+      evidence-set:
+        material: FILLED_MAP
+        display: ' &#86E96E☄ &lДоказательство добавлено '
+        lore:
+          - ''
+          - ' &#FFFFFF%evidence% '
+          - ''
+          - ' &#E9C66EЛКМ: &#BFBFBFзаменить '
+          - ' &#FF6E6EПКМ: &#BFBFBFудалить '
+          - ''
+      submit:
+        material: LIME_DYE
+        display: ' &#86E96E✔ &lОтправить жалобу '
+        lore:
+          - ''
+          - ' &#BFBFBFПроверьте игрока, причину и вложение '
+          - ''
+          - ' &#C9EFC8⏵ Нажмите для отправки '
+          - ''
+      back:
+        material: ARROW
+        display: ' &#FFFFFF← &lДругая причина '
+        lore:
+          - ''
+          - ' &#BFBFBFВернуться к выбору причины '
+          - ''

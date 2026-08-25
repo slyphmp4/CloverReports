@@ -1,24 +1,25 @@
 # CloverReports
 
-CloverReports — плагин жалоб и модерации для Paper 26.2.
+CloverReports — Paper-плагин для системы жалоб и модерации на Minecraft-сервере.
+
+Эта ветка проекта портирована на **Minecraft / Paper 26.2** и **Java 25**.
 
 ## Возможности
 
-- отправка жалоб через GUI;
-- причины жалоб из `reasons.yml`;
-- доказательства по URL;
-- интерфейс модератора;
-- история действий и заметки;
-- MySQL и SQLite;
-- экспорт логов в CSV/JSON;
-- резервное копирование и обслуживание базы данных;
-- статистика репортёров.
+- отправка жалоб через GUI (`/report <игрок>`);
+- просмотр активных дел и истории (`/viewreports`, алиасы `/rs`, `/reports`);
+- модераторские действия через GUI;
+- заметки модераторов и журнал действий;
+- прикрепление URL-доказательств;
+- экспорт логов;
+- SQLite и MySQL;
+- резервные копии базы данных;
+- настраиваемые сообщения, причины репортов и GUI.
 
 ## Требования
 
-- Minecraft / Paper API 26.2;
-- Java 25;
-- Gradle Wrapper 9.6.1.
+- Minecraft / Paper **26.2**;
+- Java **25**.
 
 ## Сборка
 
@@ -30,39 +31,39 @@ Linux/macOS:
 
 Windows:
 
-```bat
-gradlew.bat clean test shadowJar
+```powershell
+.\gradlew.bat clean test shadowJar
 ```
 
-Готовый JAR будет находиться в `build/libs/`.
+Готовый JAR появится в `build/libs/`.
 
 ## Установка
 
-1. Соберите проект или скачайте артефакт GitHub Actions.
-2. Поместите JAR в папку `plugins` Paper-сервера.
-3. Запустите сервер.
-4. Настройте `config.yml`, `messages.yml`, `gui.yml` и `reasons.yml`.
-5. Перезапустите сервер после изменения настроек, если конкретная настройка не поддерживает reload.
+1. Соберите проект или возьмите готовый JAR из GitHub Actions.
+2. Поместите JAR в папку `plugins/` сервера.
+3. Запустите сервер на Java 25.
+4. После первого запуска настройте файлы в `plugins/CloverReports/`.
 
 ## Основные команды
 
-- `/report` — открыть интерфейс отправки жалобы;
-- `/viewreports` — открыть список жалоб;
-- `/cloverreports` — административные команды плагина.
+| Команда | Назначение |
+| --- | --- |
+| `/report <игрок>` | Подать жалобу через GUI |
+| `/viewreports` | Просмотр дел и истории |
+| `/cloverreports reload` | Перезагрузить конфигурацию |
+| `/cloverreports backup` | Создать резервную копию |
+| `/cloverreports note` | Работа с заметками модераторов |
+| `/cloverreports logs` | Просмотр логов |
+| `/cloverreports export` | Экспорт логов |
 
-Полный список подкоманд и прав см. в `src/main/resources/plugin.yml`.
+## Что изменено для 26.2
 
-## Порт на Minecraft 26.2
-
-В ветке 26.2 проект обновлён под современный Paper API:
-
-- `io.papermc.paper:paper-api:26.2.build.117-stable`;
-- Java toolchain/release 25;
-- `api-version: '26.2'`;
-- Gradle 9.6.1;
-- Shadow plugin `com.gradleup.shadow` 9.6.1;
+- Paper API перенесён со старой ветки `1.16.5` на `io.papermc.paper:paper-api:26.2`;
+- `api-version` обновлён до `26.2`;
+- toolchain и bytecode target обновлены до Java 25;
+- Gradle wrapper обновлён до 9.6.1;
+- Shadow переведён на актуальный plugin id `com.gradleup.shadow`;
 - старый `AsyncPlayerChatEvent` заменён на `AsyncChatEvent`;
-- текст Adventure `Component` читается через `PlainTextComponentSerializer`;
-- удалена неиспользуемая зависимость Authlib.
-
-CI выполняет `clean test shadowJar` на Java 25 и публикует собранный JAR как артефакт workflow.
+- ввод из компонентного чата переводится в plain text через `PlainTextComponentSerializer`, совместимый с Adventure 5;
+- удалена неиспользуемая зависимость Authlib;
+- тест валидации ресурсов обновлён под `api-version: 26.2`.
