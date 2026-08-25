@@ -64,6 +64,7 @@ Windows:
 - Gradle wrapper обновлён до 9.6.1;
 - Shadow переведён на актуальный plugin id `com.gradleup.shadow`;
 - на Paper ввод из чата обрабатывается через `AsyncChatEvent`, а для Cardboard 26.x добавлен совместимый fallback через `AsyncPlayerChatEvent`;
+- служебный ввод доказательств и модераторских заметок перехватывается на `LOWEST`, до чат-форматтеров вроде CloverChat, чтобы сообщение не уходило в обычный чат;
 - ввод из компонентного чата переводится в plain text через `PlainTextComponentSerializer`, совместимый с Adventure 5;
 - удалена неиспользуемая зависимость Authlib;
 - тест валидации ресурсов обновлён под `api-version: 26.2`.
