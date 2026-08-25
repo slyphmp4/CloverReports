@@ -43,7 +43,7 @@ dependencies {
     testImplementation "io.papermc.paper:paper-api:${paperApiVersion}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    testImplementation 'org.yaml:snakeyaml:2.2'
+    testImplementation 'org.yaml:snakeyaml:2.6'
 }
 
 java {
