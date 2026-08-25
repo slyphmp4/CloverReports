@@ -68,3 +68,8 @@ Windows:
 - ввод из компонентного чата переводится в plain text через `PlainTextComponentSerializer`, совместимый с Adventure 5;
 - удалена неиспользуемая зависимость Authlib;
 - тест валидации ресурсов обновлён под `api-version: 26.2`.
+
+## Security hardening
+
+CloverReports 1.1.3 confines SQLite/backup paths to the plugin data directory, avoids remote profile lookups for UUID-less report targets, rate-limits report submission attempts, caps active reports per case, defaults evidence links to HTTPS, uses verified TLS by default for MySQL, and excludes the unused protobuf/X DevAPI dependency from Connector/J. Destructive note clearing requires `cloverreports.note.clear-all`.
+

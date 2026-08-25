@@ -43,6 +43,7 @@ public final class ReportManager {
     public static final String ACTION_CLOSED = "closed";
     public static final String ACTION_PUNISHED = "punished";
     public static final int MAX_MODERATOR_NOTES_PER_PLAYER = 20;
+    public static final int DEFAULT_MAX_REPORTS_PER_CASE = 100;
     public static final String LIVE_STATUS_NEW = "new";
     public static final String LIVE_STATUS_IN_WORK = "in_work";
     public static final String LIVE_STATUS_WAITING_DECISION = "waiting_decision";
@@ -231,6 +232,11 @@ public final class ReportManager {
                     connection.rollback();
                     return SubmissionResult.duplicate(caseId);
                 }
+                int maximumReports = Math.max(1, Math.min(10_000, getIntSetting("report.max-reports-per-case", DEFAULT_MAX_REPORTS_PER_CASE)));
+                if (countReportsInCase(connection, caseId) >= maximumReports) {
+                    connection.rollback();
+                    return SubmissionResult.capacity(caseId);
+                }
                 String insert = "INSERT INTO reports (case_id, reporter, reporter_key, reporter_uuid, reporter_identity_key, reported, reported_key, reported_uuid, reason, reason_key, evidence_url, timestamp, status) "
                         + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 try (PreparedStatement statement = connection.prepareStatement(insert)) {
@@ -388,6 +394,9 @@ public final class ReportManager {
         }
         HistoryFilter filter = reportedFilter == null ? HistoryFilter.empty() : new HistoryFilter(reportedFilter, null, null, null, 0L, 0L);
         int count = getCasePage(status, filter, 0, 1).getTotalCases();
+        if (countCache.size() >= 256) {
+            countCache.clear();
+        }
         countCache.put(cacheKey, new CachedCount(count, now + CACHE_MILLIS));
         return count;
     }
@@ -1079,6 +1088,7 @@ public final class ReportManager {
     public enum SubmissionStatus {
         SUCCESS,
         DUPLICATE,
+        CAPACITY,
         ERROR
     }
 
@@ -1106,6 +1116,10 @@ public final class ReportManager {
 
         public static SubmissionResult duplicate(long caseId) {
             return new SubmissionResult(SubmissionStatus.DUPLICATE, caseId);
+        }
+
+        public static SubmissionResult capacity(long caseId) {
+            return new SubmissionResult(SubmissionStatus.CAPACITY, caseId);
         }
 
         public static SubmissionResult error() {
@@ -1490,6 +1504,15 @@ public final class ReportManager {
             statement.setString(2, reporterIdentityKey);
             try (ResultSet resultSet = statement.executeQuery()) {
                 return resultSet.next();
+            }
+        }
+    }
+
+    private int countReportsInCase(Connection connection, long caseId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) FROM reports WHERE case_id = ?")) {
+            statement.setLong(1, caseId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() ? resultSet.getInt(1) : 0;
             }
         }
     }

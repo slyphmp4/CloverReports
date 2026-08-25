@@ -16,23 +16,25 @@ mysql:
   host: "localhost"
   port: 3306
   database: "cloverreports"
-  username: "root"
-  password: "password"
+  username: "cloverreports"
+  password: ""
   maximum-pool-size: 10
   socket-timeout-ms: 10000
   schema-lock-timeout-seconds: 120
-  use-ssl: false
+  use-ssl: true
 
 report:
   cooldown-seconds: 60
+  attempt-min-interval-ms: 1500
+  max-reports-per-case: 100
   online-only: false
   max-reason-length: 256
   punished-block-seconds: 300
   evidence:
     max-url-length: 2048
-    require-https: false
+    require-https: true
     allowed-hosts: []
-    allowed-ports: [80, 443]
+    allowed-ports: [443]
     input-timeout-seconds: 120
     max-chat-links: 25
 

@@ -110,6 +110,10 @@ public final class CloverReportsCommand implements CommandExecutor {
         }
         String note = String.join(" ", Arrays.copyOfRange(args, 2, args.length)).trim();
         boolean clear = note.equalsIgnoreCase("clear");
+        if (clear && !sender.hasPermission("cloverreports.note.clear-all")) {
+            sender.sendMessage(Messages.getChatArray("no-permission"));
+            return true;
+        }
         int maximumLength = Math.max(1, plugin.getConfig().getInt("note-input.max-length", 512));
         if (!clear && (note.isBlank() || note.length() > maximumLength || !InputValidator.isSingleLine(note))) {
             sender.sendMessage(Messages.getChatArray("note-too-long", Map.of("%limit%", String.valueOf(maximumLength))));
@@ -182,7 +186,7 @@ public final class CloverReportsCommand implements CommandExecutor {
         } else if (!result.isSuccess() || result.getBackupFile() == null) {
             sender.sendMessage(Messages.getChatArray("backup-error", Map.of("%error%", result.getError() == null ? "-" : result.getError())));
         } else {
-            sender.sendMessage(Messages.getChatArray("backup-success", Map.of("%file%", result.getBackupFile().getName(), "%path%", result.getBackupFile().getAbsolutePath())));
+            sender.sendMessage(Messages.getChatArray("backup-success", Map.of("%file%", result.getBackupFile().getName(), "%path%", result.getBackupFile().getName())));
         }
     }
 
@@ -229,7 +233,7 @@ public final class CloverReportsCommand implements CommandExecutor {
         if (result.getStatus() == ExportStatus.SUCCESS && result.getFile() != null) {
             sender.sendMessage(Messages.getChatArray("export-success", Map.of(
                     "%file%", result.getFile().getFileName().toString(),
-                    "%path%", result.getFile().toAbsolutePath().toString(),
+                    "%path%", result.getFile().getFileName().toString(),
                     "%rows%", String.valueOf(result.getRowCount())
             )));
         } else if (result.getStatus() == ExportStatus.ALREADY_RUNNING) {

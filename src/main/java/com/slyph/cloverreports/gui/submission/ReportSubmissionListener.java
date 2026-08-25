@@ -54,6 +54,7 @@ public final class ReportSubmissionListener implements Listener {
     private final ConcurrentMap<UUID, BukkitTask> evidenceTimeouts;
     private final Set<UUID> submittingPlayers;
     private final ConcurrentMap<UUID, Long> cooldowns;
+    private final ConcurrentMap<UUID, Long> reportAttempts;
 
     public ReportSubmissionListener(CloverReports plugin, ReportManager reportManager) {
         this(plugin, reportManager, new ReportSubmissionGUI(), (player, targetName, caseId) -> {
@@ -70,6 +71,7 @@ public final class ReportSubmissionListener implements Listener {
         this.evidenceTimeouts = new ConcurrentHashMap<>();
         this.submittingPlayers = ConcurrentHashMap.newKeySet();
         this.cooldowns = new ConcurrentHashMap<>();
+        this.reportAttempts = new ConcurrentHashMap<>();
     }
 
     public void open(Player player, String targetName, UUID targetUuid) {
@@ -306,9 +308,17 @@ public final class ReportSubmissionListener implements Listener {
     }
 
     private void submit(Player player, ReportSubmissionHolder holder) {
-        cancelEvidenceInput(player.getUniqueId());
+        UUID playerUuid = player.getUniqueId();
+        cancelEvidenceInput(playerUuid);
         ReportReason reason = holder.getSelectedReason();
-        if (reason == null || !submittingPlayers.add(player.getUniqueId())) {
+        if (reason == null || !submittingPlayers.add(playerUuid)) {
+            return;
+        }
+        long attemptWaitMillis = claimReportAttempt(playerUuid);
+        if (attemptWaitMillis > 0L) {
+            submittingPlayers.remove(playerUuid);
+            long seconds = Math.max(1L, (long) Math.ceil(attemptWaitMillis / 1_000.0));
+            send(player, "report-rate-limited", "&cСлишком часто. Повторите через %time% сек.", Map.of("%time%", String.valueOf(seconds)));
             return;
         }
         if (holder.getEvidenceUrl() != null && !player.hasPermission("cloverreports.report.evidence")) {
@@ -408,6 +418,10 @@ public final class ReportSubmissionListener implements Listener {
             send(player, "already-reported", "&eВы уже подали жалобу на этого игрока.", Map.of());
             return;
         }
+        if (result.status == ReportManager.SubmissionStatus.CAPACITY) {
+            send(player, "report-case-full", "&cПо этому игроку уже достигнут безопасный лимит активных жалоб.", Map.of());
+            return;
+        }
         if (result.status != ReportManager.SubmissionStatus.SUCCESS) {
             send(player, "report-error", "&cНе удалось отправить жалобу.", Map.of());
             return;
@@ -432,6 +446,29 @@ public final class ReportSubmissionListener implements Listener {
         }
         long blockSeconds = Math.max(1L, plugin.getConfig().getLong("false-reports.block-duration-seconds", 3_600L));
         return stats.getLatestReviewedAt() > 0L && System.currentTimeMillis() - stats.getLatestReviewedAt() < blockSeconds * 1_000L;
+    }
+
+    private long claimReportAttempt(UUID playerId) {
+        long interval = Math.max(250L, Math.min(60_000L, plugin.getConfig().getLong("report.attempt-min-interval-ms", 1_500L)));
+        long now = System.currentTimeMillis();
+        Long previous = reportAttempts.put(playerId, now);
+        cleanupReportAttempts(now, interval);
+        if (previous == null) {
+            return 0L;
+        }
+        long elapsed = Math.max(0L, now - previous);
+        return elapsed >= interval ? 0L : interval - elapsed;
+    }
+
+    private void cleanupReportAttempts(long now, long interval) {
+        if (reportAttempts.size() < 4_096) {
+            return;
+        }
+        long cutoff = now - Math.max(60_000L, interval * 4L);
+        reportAttempts.entrySet().removeIf(entry -> entry.getValue() < cutoff);
+        if (reportAttempts.size() > 8_192) {
+            reportAttempts.clear();
+        }
     }
 
     private long getCooldownLeft(UUID playerId, boolean falsePenalty) {

@@ -65,9 +65,9 @@ public final class DatabaseManager {
                 return true;
             }
 
-            Settings settings = fixedSettings == null ? loadSettings() : fixedSettings;
             HikariDataSource candidate = null;
             try {
+                Settings settings = fixedSettings == null ? loadSettings() : fixedSettings;
                 prepareDirectories(settings);
                 HikariConfig config = createPoolConfig(settings);
                 candidate = new HikariDataSource(config);
@@ -226,19 +226,19 @@ public final class DatabaseManager {
         if (type.equals("mysql")) {
             return Settings.mysql(
                     plugin.getConfig().getString("mysql.host", "localhost"),
-                    plugin.getConfig().getInt("mysql.port", 3306),
+                    Math.max(1, Math.min(65_535, plugin.getConfig().getInt("mysql.port", 3306))),
                     plugin.getConfig().getString("mysql.database", "cloverreports"),
-                    plugin.getConfig().getString("mysql.username", "root"),
+                    plugin.getConfig().getString("mysql.username", "cloverreports"),
                     plugin.getConfig().getString("mysql.password", ""),
                     Math.max(2, plugin.getConfig().getInt("mysql.maximum-pool-size", 10)),
                     connectionTimeout,
                     Math.max(1_000, plugin.getConfig().getInt("mysql.socket-timeout-ms", 10_000)),
-                    plugin.getConfig().getBoolean("mysql.use-ssl", false)
+                    plugin.getConfig().getBoolean("mysql.use-ssl", true)
             );
         }
 
         Path dataFolder = plugin.getDataFolder().toPath().toAbsolutePath().normalize();
-        Path databaseFile = dataFolder.resolve(plugin.getConfig().getString("sqlite.file", "reports.db")).normalize();
+        Path databaseFile = resolveConfinedPath(dataFolder, plugin.getConfig().getString("sqlite.file", "reports.db"), "sqlite.file");
         return Settings.sqlite(databaseFile, dataFolder, connectionTimeout);
     }
 
@@ -251,9 +251,11 @@ public final class DatabaseManager {
         config.setAutoCommit(true);
 
         if (settings.mysql) {
+            String sslMode = settings.useSsl ? "VERIFY_IDENTITY" : "DISABLED";
             String url = "jdbc:mysql://" + settings.host + ":" + settings.port + "/" + settings.database
                     + "?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC"
-                    + "&allowPublicKeyRetrieval=true&useSSL=" + settings.useSsl
+                    + "&sslMode=" + sslMode
+                    + "&allowPublicKeyRetrieval=" + (!settings.useSsl)
                     + "&connectTimeout=" + settings.connectionTimeoutMillis
                     + "&socketTimeout=" + settings.socketTimeoutMillis
                     + "&cachePrepStmts=true&prepStmtCacheSize=250&prepStmtCacheSqlLimit=2048&rewriteBatchedStatements=true";
@@ -806,11 +808,11 @@ public final class DatabaseManager {
     private Path resolveBackupDirectory(Settings settings) throws IOException {
         Path root = settings.dataFolder.toAbsolutePath().normalize();
         String configuredFolder = plugin == null ? "backups" : plugin.getConfig().getString("backup.folder", "backups");
-        Path directory = root.resolve(configuredFolder).normalize();
-        if (!directory.startsWith(root)) {
-            throw new IOException("backup folder must be inside the plugin data folder");
+        try {
+            return resolveConfinedPath(root, configuredFolder, "backup.folder");
+        } catch (IllegalArgumentException exception) {
+            throw new IOException(exception.getMessage(), exception);
         }
-        return directory;
     }
 
     private Path createUniqueBackupPath(Path databaseFile, Path directory) {
@@ -844,6 +846,30 @@ public final class DatabaseManager {
             throw new SQLException("Database settings are unavailable");
         }
         return settings;
+    }
+
+    static Path resolveConfinedPath(Path dataFolder, String configuredValue, String settingName) {
+        Path root = Objects.requireNonNull(dataFolder, "dataFolder").toAbsolutePath().normalize();
+        String configured = configuredValue == null ? "" : configuredValue.trim();
+        if (configured.isEmpty()) {
+            throw new IllegalArgumentException(settingName + " must not be empty");
+        }
+        Path relative = Path.of(configured);
+        if (relative.isAbsolute()) {
+            throw new IllegalArgumentException(settingName + " must be relative to the plugin data folder");
+        }
+        Path target = root.resolve(relative).normalize();
+        if (!target.startsWith(root)) {
+            throw new IllegalArgumentException(settingName + " must stay inside the plugin data folder");
+        }
+        Path cursor = root;
+        for (Path segment : root.relativize(target)) {
+            cursor = cursor.resolve(segment);
+            if (Files.isSymbolicLink(cursor)) {
+                throw new IllegalArgumentException(settingName + " must not traverse symbolic links");
+            }
+        }
+        return target;
     }
 
     private String normalizeStorageType(String configuredType) {
