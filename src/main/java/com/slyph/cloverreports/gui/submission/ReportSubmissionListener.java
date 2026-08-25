@@ -23,6 +23,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import io.papermc.paper.event.player.AsyncChatEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
@@ -143,14 +144,33 @@ public final class ReportSubmissionListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerChat(AsyncChatEvent event) {
-        PendingEvidenceInput input = pendingEvidenceInputs.get(event.getPlayer().getUniqueId());
-        if (input == null || !ChatInputRegistry.isOwnedBy(event.getPlayer().getUniqueId(), CHAT_INPUT_OWNER)) {
+        String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
+        if (captureEvidenceChat(event.getPlayer(), message)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onLegacyPlayerChat(AsyncPlayerChatEvent event) {
+        // Cardboard 26.x dispatches AsyncPlayerChatEvent for player chat.
+        // Paper keeps using AsyncChatEvent above.
+        if (!"Cardboard".equalsIgnoreCase(Bukkit.getServer().getName())) {
             return;
         }
-        event.setCancelled(true);
-        UUID playerUuid = event.getPlayer().getUniqueId();
-        String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
+        if (captureEvidenceChat(event.getPlayer(), event.getMessage().trim())) {
+            event.setCancelled(true);
+        }
+    }
+
+    private boolean captureEvidenceChat(Player player, String message) {
+        UUID playerUuid = player.getUniqueId();
+        PendingEvidenceInput input = pendingEvidenceInputs.get(playerUuid);
+        if (input == null || !ChatInputRegistry.isOwnedBy(playerUuid, CHAT_INPUT_OWNER)) {
+            return false;
+        }
         Bukkit.getScheduler().runTask(plugin, () -> handleEvidenceChat(playerUuid, input, message));
+        return true;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)

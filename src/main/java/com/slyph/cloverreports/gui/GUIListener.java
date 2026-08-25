@@ -32,6 +32,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import io.papermc.paper.event.player.AsyncChatEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
@@ -158,37 +159,57 @@ public final class GUIListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerChat(AsyncChatEvent event) {
-        UUID playerId = event.getPlayer().getUniqueId();
-        if (!ChatInputRegistry.isOwnedBy(playerId, NOTE_INPUT_OWNER)) {
+        String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
+        if (captureNoteChat(event.getPlayer(), message)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onLegacyPlayerChat(AsyncPlayerChatEvent event) {
+        // Cardboard 26.x dispatches the Bukkit legacy chat event instead of
+        // Paper's AsyncChatEvent. Keep this fallback Cardboard-only so Paper
+        // continues to use the modern component chat API without double handling.
+        if (!"Cardboard".equalsIgnoreCase(Bukkit.getServer().getName())) {
             return;
+        }
+        if (captureNoteChat(event.getPlayer(), event.getMessage().trim())) {
+            event.setCancelled(true);
+        }
+    }
+
+    private boolean captureNoteChat(Player player, String message) {
+        UUID playerId = player.getUniqueId();
+        if (!ChatInputRegistry.isOwnedBy(playerId, NOTE_INPUT_OWNER)) {
+            return false;
         }
         PendingNoteInput input = pendingNoteInputs.get(playerId);
         if (input == null) {
             ChatInputRegistry.release(playerId, NOTE_INPUT_OWNER);
-            return;
+            return false;
         }
-        event.setCancelled(true);
         if (!pendingNoteInputs.remove(playerId, input)) {
-            return;
+            return false;
         }
         ChatInputRegistry.release(playerId, NOTE_INPUT_OWNER);
-        String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
         OperationSession operation = new OperationSession(input.lease);
         OperationSession existing = activeOperations.putIfAbsent(playerId, operation);
         if (existing != null) {
             runMain(() -> {
                 cancelNoteInputTimeout(playerId);
-                Player player = Bukkit.getPlayer(playerId);
-                if (player != null) {
-                    send(player, "action-error", "&cНе удалось выполнить действие.", Map.of());
+                Player online = Bukkit.getPlayer(playerId);
+                if (online != null) {
+                    send(online, "action-error", "&cНе удалось выполнить действие.", Map.of());
                 }
                 if (!matches(existing, input.lease)) {
                     releaseLeaseAsync(input.lease, true);
                 }
             });
-            return;
+            return true;
         }
         runMain(() -> beginNoteProcessing(playerId, input, operation, message));
+        return true;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
