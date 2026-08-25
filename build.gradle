@@ -1,0 +1,72 @@
+plugins {
+    id 'java'
+    id 'com.gradleup.shadow' version '9.6.1'
+}
+
+group = 'com.slyph'
+version = '1.1.0'
+
+def paperApiVersion = findProperty('paperApiVersion') ?: '26.2.build.117-stable'
+def paperApiGroup = findProperty('paperApiGroup') ?: 'io.papermc.paper'
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'papermc'
+        url = 'https://repo.papermc.io/repository/maven-public/'
+    }
+}
+
+dependencies {
+    compileOnly "${paperApiGroup}:paper-api:${paperApiVersion}"
+
+    implementation 'com.zaxxer:HikariCP:5.1.0'
+    implementation 'org.xerial:sqlite-jdbc:3.46.1.0'
+    implementation 'com.mysql:mysql-connector-j:9.0.0'
+    implementation 'com.google.code.gson:gson:2.11.0'
+
+    testImplementation "${paperApiGroup}:paper-api:${paperApiVersion}"
+    testImplementation platform('org.junit:junit-bom:5.11.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+processResources {
+    def props = [version: project.version]
+    inputs.properties props
+    filteringCharset = 'UTF-8'
+    filesMatching('plugin.yml') {
+        expand props
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+shadowJar {
+    archiveClassifier.set('')
+    relocate 'com.zaxxer.hikari', 'com.slyph.cloverreports.libs.hikari'
+    relocate 'org.sqlite', 'com.slyph.cloverreports.libs.sqlite'
+    relocate 'com.mysql', 'com.slyph.cloverreports.libs.mysql'
+    relocate 'com.google.gson', 'com.slyph.cloverreports.libs.gson'
+    mergeServiceFiles()
+}
+
+jar {
+    enabled = false
+}
+
+build {
+    dependsOn shadowJar
+}
