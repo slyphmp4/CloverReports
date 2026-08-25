@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+@SuppressWarnings("deprecation")
 public final class ReportSubmissionGUI {
 
     public static final int PREVIOUS_SLOT = 45;

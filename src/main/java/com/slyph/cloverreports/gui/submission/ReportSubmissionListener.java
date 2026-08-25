@@ -352,36 +352,52 @@ public final class ReportSubmissionListener implements Listener {
 
         UUID reporterUuid = player.getUniqueId();
         String reporterName = player.getName();
-        String targetName = holder.getTargetName();
-        UUID targetUuid = holder.getTargetUuid();
+        String targetName = onlineTarget == null ? holder.getTargetName() : onlineTarget.getName();
+        UUID targetUuid = onlineTarget == null ? holder.getTargetUuid() : onlineTarget.getUniqueId();
+        if (reporterUuid.equals(targetUuid) || targetName.equalsIgnoreCase(reporterName)) {
+            send(player, "cannot-report-yourself", "&cНельзя подать жалобу на себя.", Map.of());
+            submittingPlayers.remove(reporterUuid);
+            return;
+        }
         boolean bypassCooldown = player.hasPermission(BYPASS_COOLDOWN_PERMISSION);
         boolean bypassFalseReports = player.hasPermission(BYPASS_FALSE_REPORTS_PERMISSION);
+        long initialCooldownLeft = bypassCooldown ? 0L : getCooldownLeft(reporterUuid, false);
+        if (initialCooldownLeft > 0L) {
+            submittingPlayers.remove(reporterUuid);
+            send(player, "report-cooldown", "&cПодождите ещё %time% сек.", Map.of("%time%", String.valueOf(initialCooldownLeft)));
+            return;
+        }
+        boolean requireKnownPlayer = plugin.getConfig().getBoolean("report.require-known-player", true);
         player.closeInventory();
         send(player, "report-submitting", "&eОтправляем жалобу...", Map.of());
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             AsyncSubmissionResult asyncResult;
             try {
-                ReporterStats stats = bypassFalseReports ? new ReporterStats(0, 0) : reportManager.getReporterStats(reporterUuid, reporterName);
-                boolean falsePenalty = !bypassFalseReports && isFalseReportPenaltyActive(stats);
-                if (falsePenalty && isFalseReportBlockActive(stats)) {
-                    asyncResult = AsyncSubmissionResult.falseBlocked(stats);
+                UUID effectiveTargetUuid = targetUuid == null ? reportManager.resolveKnownPlayerUuid(targetName) : targetUuid;
+                if (requireKnownPlayer && effectiveTargetUuid == null) {
+                    asyncResult = AsyncSubmissionResult.unknownPlayer();
                 } else {
-                    long cooldownLeft = bypassCooldown ? 0L : getCooldownLeft(reporterUuid, falsePenalty);
-                    if (cooldownLeft > 0L) {
-                        asyncResult = AsyncSubmissionResult.cooldown(cooldownLeft, falsePenalty, stats);
+                    ReporterStats stats = bypassFalseReports ? new ReporterStats(0, 0) : reportManager.getReporterStats(reporterUuid, reporterName);
+                    boolean falsePenalty = !bypassFalseReports && isFalseReportPenaltyActive(stats);
+                    if (falsePenalty && isFalseReportBlockActive(stats)) {
+                        asyncResult = AsyncSubmissionResult.falseBlocked(stats);
                     } else {
-                        UUID effectiveTargetUuid = targetUuid == null ? reportManager.resolveKnownPlayerUuid(targetName) : targetUuid;
-                        if (reportManager.hasPunishedReport(effectiveTargetUuid, targetName)) {
-                            asyncResult = AsyncSubmissionResult.punished();
+                        long cooldownLeft = bypassCooldown ? 0L : getCooldownLeft(reporterUuid, falsePenalty);
+                        if (cooldownLeft > 0L) {
+                            asyncResult = AsyncSubmissionResult.cooldown(cooldownLeft, falsePenalty, stats);
                         } else {
-                            ReportManager.SubmissionResult result = reportManager.submitReport(reporterUuid, reporterName, effectiveTargetUuid, targetName, reason.getKey(), reason.getName(), evidenceUrl);
-                            int count = result.getStatus() == ReportManager.SubmissionStatus.SUCCESS ? reportManager.getActiveReportCount(targetName) : 0;
-                            if (result.getStatus() == ReportManager.SubmissionStatus.SUCCESS && !bypassCooldown) {
-                                cooldowns.put(reporterUuid, System.currentTimeMillis());
-                                cleanupCooldowns();
+                            if (reportManager.hasPunishedReport(effectiveTargetUuid, targetName)) {
+                                asyncResult = AsyncSubmissionResult.punished();
+                            } else {
+                                ReportManager.SubmissionResult result = reportManager.submitReport(reporterUuid, reporterName, effectiveTargetUuid, targetName, reason.getKey(), reason.getName(), evidenceUrl);
+                                int count = result.getStatus() == ReportManager.SubmissionStatus.SUCCESS ? reportManager.getActiveReportCount(targetName) : 0;
+                                if (result.getStatus() == ReportManager.SubmissionStatus.SUCCESS && !bypassCooldown) {
+                                    cooldowns.put(reporterUuid, System.currentTimeMillis());
+                                    cleanupCooldowns();
+                                }
+                                asyncResult = AsyncSubmissionResult.database(result.getStatus(), result.getCaseId(), count);
                             }
-                            asyncResult = AsyncSubmissionResult.database(result.getStatus(), result.getCaseId(), count);
                         }
                     }
                 }
@@ -398,6 +414,10 @@ public final class ReportSubmissionListener implements Listener {
         submittingPlayers.remove(reporterUuid);
         Player player = Bukkit.getPlayer(reporterUuid);
         if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (result.unknownPlayer) {
+            send(player, "player-not-known", "&cИгрок %player% ещё не заходил на сервер.", Map.of("%player%", targetName));
             return;
         }
         if (result.punished) {
@@ -420,6 +440,25 @@ public final class ReportSubmissionListener implements Listener {
         }
         if (result.status == ReportManager.SubmissionStatus.CAPACITY) {
             send(player, "report-case-full", "&cПо этому игроку уже достигнут безопасный лимит активных жалоб.", Map.of());
+            return;
+        }
+        if (result.status == ReportManager.SubmissionStatus.GLOBAL_CAPACITY) {
+            send(player, "report-queue-full", "&cОчередь модерации заполнена. Повторите позже.", Map.of());
+            return;
+        }
+        if (result.status == ReportManager.SubmissionStatus.REPORTER_ACTIVE_CAPACITY) {
+            send(player, "report-active-limit", "&cУ вас слишком много активных жалоб. Дождитесь их обработки.", Map.of(
+                    "%limit%", String.valueOf(plugin.getConfig().getInt("report.max-active-cases-per-reporter", ReportManager.DEFAULT_MAX_ACTIVE_CASES_PER_REPORTER))
+            ));
+            return;
+        }
+        if (result.status == ReportManager.SubmissionStatus.REPORTER_QUOTA) {
+            long windowSeconds = plugin.getConfig().getLong("report.quota-window-seconds", ReportManager.DEFAULT_REPORT_QUOTA_WINDOW_SECONDS);
+            long windowHours = Math.max(1L, (long) Math.ceil(windowSeconds / 3_600.0));
+            send(player, "report-quota", "&cЛимит жалоб за %hours% ч. исчерпан.", Map.of(
+                    "%limit%", String.valueOf(plugin.getConfig().getInt("report.max-reports-per-window", ReportManager.DEFAULT_MAX_REPORTS_PER_WINDOW)),
+                    "%hours%", String.valueOf(windowHours)
+            ));
             return;
         }
         if (result.status != ReportManager.SubmissionStatus.SUCCESS) {
@@ -582,16 +621,18 @@ public final class ReportSubmissionListener implements Listener {
         private final long caseId;
         private final int count;
         private final boolean punished;
+        private final boolean unknownPlayer;
         private final long cooldownLeft;
         private final boolean falsePenalty;
         private final boolean falseBlocked;
         private final ReporterStats stats;
 
-        private AsyncSubmissionResult(ReportManager.SubmissionStatus status, long caseId, int count, boolean punished, long cooldownLeft, boolean falsePenalty, boolean falseBlocked, ReporterStats stats) {
+        private AsyncSubmissionResult(ReportManager.SubmissionStatus status, long caseId, int count, boolean punished, boolean unknownPlayer, long cooldownLeft, boolean falsePenalty, boolean falseBlocked, ReporterStats stats) {
             this.status = status;
             this.caseId = caseId;
             this.count = count;
             this.punished = punished;
+            this.unknownPlayer = unknownPlayer;
             this.cooldownLeft = cooldownLeft;
             this.falsePenalty = falsePenalty;
             this.falseBlocked = falseBlocked;
@@ -599,23 +640,27 @@ public final class ReportSubmissionListener implements Listener {
         }
 
         private static AsyncSubmissionResult database(ReportManager.SubmissionStatus status, long caseId, int count) {
-            return new AsyncSubmissionResult(status, caseId, count, false, 0L, false, false, null);
+            return new AsyncSubmissionResult(status, caseId, count, false, false, 0L, false, false, null);
         }
 
         private static AsyncSubmissionResult punished() {
-            return new AsyncSubmissionResult(null, 0L, 0, true, 0L, false, false, null);
+            return new AsyncSubmissionResult(null, 0L, 0, true, false, 0L, false, false, null);
+        }
+
+        private static AsyncSubmissionResult unknownPlayer() {
+            return new AsyncSubmissionResult(null, 0L, 0, false, true, 0L, false, false, null);
         }
 
         private static AsyncSubmissionResult cooldown(long cooldownLeft, boolean falsePenalty, ReporterStats stats) {
-            return new AsyncSubmissionResult(null, 0L, 0, false, cooldownLeft, falsePenalty, false, stats);
+            return new AsyncSubmissionResult(null, 0L, 0, false, false, cooldownLeft, falsePenalty, false, stats);
         }
 
         private static AsyncSubmissionResult falseBlocked(ReporterStats stats) {
-            return new AsyncSubmissionResult(null, 0L, 0, false, 0L, true, true, stats);
+            return new AsyncSubmissionResult(null, 0L, 0, false, false, 0L, true, true, stats);
         }
 
         private static AsyncSubmissionResult error() {
-            return new AsyncSubmissionResult(ReportManager.SubmissionStatus.ERROR, 0L, 0, false, 0L, false, false, null);
+            return new AsyncSubmissionResult(ReportManager.SubmissionStatus.ERROR, 0L, 0, false, false, 0L, false, false, null);
         }
     }
 }

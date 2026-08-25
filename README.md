@@ -26,22 +26,22 @@ CloverReports — Paper-плагин для системы жалоб и мод�
 Linux/macOS:
 
 ```bash
-./gradlew clean test shadowJar
+./gradlew clean test writeArtifactChecksum
 ```
 
 Windows:
 
 ```powershell
-.\gradlew.bat clean test shadowJar
+.\gradlew.bat clean test writeArtifactChecksum
 ```
 
-Готовый JAR появится в `build/libs/`.
+Готовый JAR появится в `build/libs/`. Задача `verifyJarContents` побайтно сверяет классы и ресурсы проекта с содержимым shaded JAR и создаёт полный манифест SHA-256 в `build/reports/jar-content-manifest.sha256`; `writeArtifactChecksum` дополнительно создаёт `build/checksums/SHA256SUMS`.
 
 ## Установка
 
 1. Соберите проект или возьмите готовый JAR из GitHub Actions.
 2. Поместите JAR в папку `plugins/` сервера.
-3. Запустите сервер на Java 25.
+3. Запустите сервер на Java 25 с `--enable-native-access=ALL-UNNAMED` (это штатно требуется SQLite JDBC для загрузки нативной библиотеки без предупреждений).
 4. После первого запуска настройте файлы в `plugins/CloverReports/`.
 
 ## Основные команды
@@ -71,5 +71,19 @@ Windows:
 
 ## Security hardening
 
-CloverReports 1.1.3 confines SQLite/backup paths to the plugin data directory, avoids remote profile lookups for UUID-less report targets, rate-limits report submission attempts, caps active reports per case, defaults evidence links to HTTPS, uses verified TLS by default for MySQL, and excludes the unused protobuf/X DevAPI dependency from Connector/J. Destructive note clearing requires `cloverreports.note.clear-all`.
+- неизвестные offline-ники не принимаются: UUID должен быть получен онлайн или ранее зарегистрирован плагином (`report.require-known-player`);
+- cooldown проверяется до запросов статистики, а постоянные квоты ограничивают число активных дел и жалоб за окно времени;
+- глобальный лимит очереди и квоты применяются внутри DB-транзакции с общей блокировкой, в том числе при нескольких Paper-серверах на одной MySQL;
+- `PENDING`-дела старше `cleanup.pending-days` удаляются ежедневно, но дело с действующей модераторской сессией не затрагивается;
+- evidence URL по умолчанию разрешены только для HTTPS и доверенных платформ из `report.evidence.allowed-hosts`; пустой список безопасно откатывается к встроенному allowlist, а явный opt-out — `allow-any-host: true`;
+- удалённый MySQL нельзя запустить с `mysql.use-ssl: false`; для remote host используется `sslMode=VERIFY_IDENTITY`;
+- SQLite, backup и export пути ограничены директорией плагина;
+- Gradle проверяет SHA-256 всех зависимостей, wrapper имеет официальный hash, а GitHub Actions закреплены полными commit SHA;
+- release workflow публикует JAR, `SHA256SUMS`, манифест содержимого и GitHub build-provenance attestation.
 
+Для релизного JAR сначала проверьте `SHA256SUMS`, затем provenance:
+
+```bash
+sha256sum --check SHA256SUMS
+gh attestation verify CloverReports-*.jar --repo slyphmp4/CloverReports
+```

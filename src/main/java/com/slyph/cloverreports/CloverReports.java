@@ -20,6 +20,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Objects;
 
+@SuppressWarnings("deprecation")
 public final class CloverReports extends JavaPlugin {
 
     private static CloverReports instance;
@@ -58,6 +59,7 @@ public final class CloverReports extends JavaPlugin {
         }
 
         getServer().getScheduler().runTaskAsynchronously(this, reportManager::cleanupOldReports);
+        getServer().getScheduler().runTaskTimerAsynchronously(this, reportManager::cleanupOldReports, 72_000L, 1_728_000L);
         getServer().getScheduler().runTaskTimerAsynchronously(this, reportManager::recoverInterruptedPunishments, 1_200L, 1_200L);
         getServer().getConsoleSender().sendMessage(Messages.getChatArray("plugin-enabled"));
     }

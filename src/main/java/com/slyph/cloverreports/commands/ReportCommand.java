@@ -9,6 +9,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.OfflinePlayer;
 
 import java.util.Map;
 
@@ -36,7 +37,8 @@ public final class ReportCommand implements CommandExecutor {
             return true;
         }
         Player onlineTarget = Bukkit.getPlayerExact(args[0]);
-        String targetName = onlineTarget == null ? args[0] : onlineTarget.getName();
+        OfflinePlayer knownTarget = onlineTarget == null ? Bukkit.getOfflinePlayerIfCached(args[0]) : onlineTarget;
+        String targetName = knownTarget == null || knownTarget.getName() == null ? args[0] : knownTarget.getName();
         if (targetName.equalsIgnoreCase(player.getName())) {
             player.sendMessage(Messages.getChatArray("cannot-report-yourself"));
             return true;
@@ -45,7 +47,7 @@ public final class ReportCommand implements CommandExecutor {
             player.sendMessage(Messages.getChatArray("player-not-found", Map.of("%player%", targetName)));
             return true;
         }
-        submissionListener.open(player, targetName, onlineTarget == null ? null : onlineTarget.getUniqueId());
+        submissionListener.open(player, targetName, knownTarget == null ? null : knownTarget.getUniqueId());
         return true;
     }
 }

@@ -44,6 +44,10 @@ public final class ReportManager {
     public static final String ACTION_PUNISHED = "punished";
     public static final int MAX_MODERATOR_NOTES_PER_PLAYER = 20;
     public static final int DEFAULT_MAX_REPORTS_PER_CASE = 100;
+    public static final int DEFAULT_MAX_ACTIVE_CASES = 2_000;
+    public static final int DEFAULT_MAX_ACTIVE_CASES_PER_REPORTER = 10;
+    public static final int DEFAULT_MAX_REPORTS_PER_WINDOW = 30;
+    public static final long DEFAULT_REPORT_QUOTA_WINDOW_SECONDS = 86_400L;
     public static final String LIVE_STATUS_NEW = "new";
     public static final String LIVE_STATUS_IN_WORK = "in_work";
     public static final String LIVE_STATUS_WAITING_DECISION = "waiting_decision";
@@ -55,17 +59,22 @@ public final class ReportManager {
     private final ConcurrentMap<Long, ReviewLease> localLeases;
     private final ConcurrentMap<String, CachedSuggestions> suggestionCache;
     private final ConcurrentMap<String, CachedCount> countCache;
+    private final SubmissionLimits fixedSubmissionLimits;
     private volatile DatabaseManager databaseManager;
 
     public ReportManager(CloverReports plugin, DatabaseManager databaseManager) {
-        this(plugin, databaseManager, plugin.getLogger());
+        this(plugin, databaseManager, plugin.getLogger(), null);
     }
 
     public ReportManager(DatabaseManager databaseManager, Logger logger) {
-        this(null, databaseManager, logger);
+        this(null, databaseManager, logger, SubmissionLimits.testDefaults());
     }
 
-    private ReportManager(CloverReports plugin, DatabaseManager databaseManager, Logger logger) {
+    ReportManager(DatabaseManager databaseManager, Logger logger, SubmissionLimits submissionLimits) {
+        this(null, databaseManager, logger, submissionLimits);
+    }
+
+    private ReportManager(CloverReports plugin, DatabaseManager databaseManager, Logger logger, SubmissionLimits fixedSubmissionLimits) {
         this.plugin = plugin;
         this.databaseManager = databaseManager;
         this.logger = logger;
@@ -73,6 +82,7 @@ public final class ReportManager {
         this.localLeases = new ConcurrentHashMap<>();
         this.suggestionCache = new ConcurrentHashMap<>();
         this.countCache = new ConcurrentHashMap<>();
+        this.fixedSubmissionLimits = fixedSubmissionLimits;
     }
 
     public DatabaseManager replaceDatabase(DatabaseManager replacement) {
@@ -97,6 +107,7 @@ public final class ReportManager {
             boolean autoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
             try {
+                acquireSubmissionGuard(connection);
                 long now = databaseNow(connection);
                 String uuid = playerUuid.toString();
                 String name = trimToLength(playerName, 64);
@@ -207,6 +218,7 @@ public final class ReportManager {
             boolean autoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
             try {
+                acquireSubmissionGuard(connection);
                 long now = databaseNow(connection);
                 if (reporterUuid != null && reportedUuid != null && !reporterUuid.equals(reportedUuid)) {
                     if (reporterUuid.toString().compareTo(reportedUuid.toString()) < 0) {
@@ -227,11 +239,30 @@ public final class ReportManager {
                 if (reporterUuid != null) {
                     backfillReporterIdentity(connection, reporterUuid.toString(), reporterKey);
                 }
-                long caseId = findOrCreateOpenCase(connection, reportedUuid, safeReported, reportedKey, targetIdentityKey, now);
-                if (hasReporterInCase(connection, caseId, reporterIdentityKey, true)) {
+                OptionalLong existingCase = findOpenCaseId(connection, reportedUuid, safeReported, true);
+                if (existingCase.isPresent() && hasReporterInCase(connection, existingCase.getAsLong(), reporterIdentityKey, true)) {
                     connection.rollback();
-                    return SubmissionResult.duplicate(caseId);
+                    return SubmissionResult.duplicate(existingCase.getAsLong());
                 }
+
+                SubmissionLimits limits = getSubmissionLimits();
+                if (countActiveCasesForReporter(connection, reporterIdentityKey) >= limits.maxActiveCasesPerReporter) {
+                    connection.rollback();
+                    return SubmissionResult.reporterActiveCapacity();
+                }
+                long quotaCutoff = now - limits.quotaWindowSeconds * 1_000L;
+                if (countReporterSubmissionsSince(connection, reporterIdentityKey, quotaCutoff) >= limits.maxReportsPerWindow) {
+                    connection.rollback();
+                    return SubmissionResult.reporterQuota();
+                }
+                if (existingCase.isEmpty() && countActiveCases(connection) >= limits.maxActiveCases) {
+                    connection.rollback();
+                    return SubmissionResult.globalCapacity();
+                }
+
+                long caseId = existingCase.isPresent()
+                        ? existingCase.getAsLong()
+                        : findOrCreateOpenCase(connection, reportedUuid, safeReported, reportedKey, targetIdentityKey, now);
                 int maximumReports = Math.max(1, Math.min(10_000, getIntSetting("report.max-reports-per-case", DEFAULT_MAX_REPORTS_PER_CASE)));
                 if (countReportsInCase(connection, caseId) >= maximumReports) {
                     connection.rollback();
@@ -1033,22 +1064,33 @@ public final class ReportManager {
             return 0;
         }
         int reportDays = Math.max(1, getIntSetting("cleanup.resolved-days", 30));
+        int pendingDays = Math.max(1, getIntSetting("cleanup.pending-days", 14));
         int logDays = Math.max(reportDays, getIntSetting("cleanup.logs-days", 90));
         mutationLock.lock();
         try (Connection connection = databaseManager.getConnection()) {
             boolean autoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
             try {
+                acquireSubmissionGuard(connection);
                 long now = databaseNow(connection);
                 long reportCutoff = now - reportDays * 86_400_000L;
+                long pendingCutoff = now - pendingDays * 86_400_000L;
                 long logCutoff = now - logDays * 86_400_000L;
                 recoverInterruptedPunishments(connection);
                 int removed = execute(connection, "DELETE FROM case_review_leases WHERE expires_at < ?", now);
+                String stalePendingCases = "SELECT c.id FROM report_cases c WHERE c.status = ? AND c.updated_at < ? "
+                        + "AND NOT EXISTS (SELECT 1 FROM case_review_leases l WHERE l.case_id = c.id AND l.expires_at >= ?)";
+                removed += execute(connection, "DELETE FROM report_notes WHERE case_id IN (" + stalePendingCases + ")", STATUS_PENDING, pendingCutoff, now);
+                removed += execute(connection, "DELETE FROM reports WHERE case_id IN (" + stalePendingCases + ")", STATUS_PENDING, pendingCutoff, now);
+                removed += execute(connection, "DELETE FROM report_cases WHERE status = ? AND updated_at < ? "
+                        + "AND NOT EXISTS (SELECT 1 FROM case_review_leases l WHERE l.case_id = report_cases.id AND l.expires_at >= ?)",
+                        STATUS_PENDING, pendingCutoff, now);
                 removed += execute(connection, "DELETE FROM report_notes WHERE case_id IN (SELECT id FROM report_cases WHERE status = ? AND resolved_at < ?)", STATUS_RESOLVED, reportCutoff);
                 removed += execute(connection, "DELETE FROM reports WHERE case_id IN (SELECT id FROM report_cases WHERE status = ? AND resolved_at < ?)", STATUS_RESOLVED, reportCutoff);
                 removed += execute(connection, "DELETE FROM report_cases WHERE status = ? AND resolved_at < ?", STATUS_RESOLVED, reportCutoff);
                 removed += execute(connection, "DELETE FROM report_logs WHERE timestamp < ?", logCutoff);
                 connection.commit();
+                localLeases.entrySet().removeIf(entry -> entry.getValue().expiresAt < now);
                 invalidateCaches();
                 return removed;
             } catch (SQLException exception) {
@@ -1089,6 +1131,9 @@ public final class ReportManager {
         SUCCESS,
         DUPLICATE,
         CAPACITY,
+        GLOBAL_CAPACITY,
+        REPORTER_ACTIVE_CAPACITY,
+        REPORTER_QUOTA,
         ERROR
     }
 
@@ -1122,6 +1167,18 @@ public final class ReportManager {
             return new SubmissionResult(SubmissionStatus.CAPACITY, caseId);
         }
 
+        public static SubmissionResult globalCapacity() {
+            return new SubmissionResult(SubmissionStatus.GLOBAL_CAPACITY, 0L);
+        }
+
+        public static SubmissionResult reporterActiveCapacity() {
+            return new SubmissionResult(SubmissionStatus.REPORTER_ACTIVE_CAPACITY, 0L);
+        }
+
+        public static SubmissionResult reporterQuota() {
+            return new SubmissionResult(SubmissionStatus.REPORTER_QUOTA, 0L);
+        }
+
         public static SubmissionResult error() {
             return new SubmissionResult(SubmissionStatus.ERROR, 0L);
         }
@@ -1132,6 +1189,25 @@ public final class ReportManager {
 
         public long getCaseId() {
             return caseId;
+        }
+    }
+
+    static final class SubmissionLimits {
+
+        private final int maxActiveCases;
+        private final int maxActiveCasesPerReporter;
+        private final int maxReportsPerWindow;
+        private final long quotaWindowSeconds;
+
+        SubmissionLimits(int maxActiveCases, int maxActiveCasesPerReporter, int maxReportsPerWindow, long quotaWindowSeconds) {
+            this.maxActiveCases = Math.max(1, Math.min(1_000_000, maxActiveCases));
+            this.maxActiveCasesPerReporter = Math.max(1, Math.min(100_000, maxActiveCasesPerReporter));
+            this.maxReportsPerWindow = Math.max(1, Math.min(100_000, maxReportsPerWindow));
+            this.quotaWindowSeconds = Math.max(60L, Math.min(2_678_400L, quotaWindowSeconds));
+        }
+
+        private static SubmissionLimits testDefaults() {
+            return new SubmissionLimits(10_000, 10_000, 10_000, DEFAULT_REPORT_QUOTA_WINDOW_SECONDS);
         }
     }
 
@@ -1504,6 +1580,63 @@ public final class ReportManager {
             statement.setString(2, reporterIdentityKey);
             try (ResultSet resultSet = statement.executeQuery()) {
                 return resultSet.next();
+            }
+        }
+    }
+
+    private void acquireSubmissionGuard(Connection connection) throws SQLException {
+        if (databaseManager.getStorageType().equals("mysql")) {
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "SELECT meta_value FROM cloverreports_meta WHERE meta_key = ? FOR UPDATE")) {
+                statement.setString(1, DatabaseManager.META_SUBMISSION_GUARD);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (!resultSet.next()) {
+                        throw new SQLException("Submission guard metadata is missing");
+                    }
+                }
+            }
+            return;
+        }
+        try (PreparedStatement statement = connection.prepareStatement(
+                "UPDATE cloverreports_meta SET meta_value = meta_value WHERE meta_key = ?")) {
+            statement.setString(1, DatabaseManager.META_SUBMISSION_GUARD);
+            if (statement.executeUpdate() != 1) {
+                throw new SQLException("Submission guard metadata is missing");
+            }
+        }
+    }
+
+    private int countActiveCases(Connection connection) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT COUNT(*) FROM report_cases WHERE status IN (?, ?)")) {
+            statement.setString(1, STATUS_PENDING);
+            statement.setString(2, STATUS_PROCESSING);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() ? resultSet.getInt(1) : 0;
+            }
+        }
+    }
+
+    private int countActiveCasesForReporter(Connection connection, String reporterIdentityKey) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT COUNT(DISTINCT r.case_id) FROM reports r JOIN report_cases c ON c.id = r.case_id "
+                        + "WHERE r.reporter_identity_key = ? AND c.status IN (?, ?)")) {
+            statement.setString(1, reporterIdentityKey);
+            statement.setString(2, STATUS_PENDING);
+            statement.setString(3, STATUS_PROCESSING);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() ? resultSet.getInt(1) : 0;
+            }
+        }
+    }
+
+    private int countReporterSubmissionsSince(Connection connection, String reporterIdentityKey, long cutoff) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT COUNT(*) FROM reports WHERE reporter_identity_key = ? AND timestamp >= ?")) {
+            statement.setString(1, reporterIdentityKey);
+            statement.setLong(2, cutoff);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() ? resultSet.getInt(1) : 0;
             }
         }
     }
@@ -2119,6 +2252,18 @@ public final class ReportManager {
             return "test";
         }
         return plugin.getConfig().getString("server.id", plugin.getConfig().getString("server.name", "server"));
+    }
+
+    private SubmissionLimits getSubmissionLimits() {
+        if (fixedSubmissionLimits != null) {
+            return fixedSubmissionLimits;
+        }
+        return new SubmissionLimits(
+                getIntSetting("report.max-active-cases", DEFAULT_MAX_ACTIVE_CASES),
+                getIntSetting("report.max-active-cases-per-reporter", DEFAULT_MAX_ACTIVE_CASES_PER_REPORTER),
+                getIntSetting("report.max-reports-per-window", DEFAULT_MAX_REPORTS_PER_WINDOW),
+                getLongSetting("report.quota-window-seconds", DEFAULT_REPORT_QUOTA_WINDOW_SECONDS)
+        );
     }
 
     private boolean getBooleanSetting(String path, boolean fallback) {

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@SuppressWarnings("deprecation")
 public final class ChatUtil {
 
     private static final Pattern HEX_PATTERN = Pattern.compile("(?i)&(?:#)?([0-9A-F]{6})");

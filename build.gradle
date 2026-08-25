@@ -1,12 +1,27 @@
+import java.security.MessageDigest
+import java.util.HexFormat
+import java.util.jar.JarFile
+
 plugins {
     id 'java'
     id 'com.gradleup.shadow' version '9.6.1'
 }
 
 group = 'com.slyph'
-version = '1.1.3'
+version = '1.2.0'
+def pluginVersion = version.toString()
 
 def paperApiVersion = findProperty('paperApiVersion') ?: '26.2.build.117-stable'
+
+def sha256Stream = { InputStream input ->
+    MessageDigest digest = MessageDigest.getInstance('SHA-256')
+    byte[] buffer = new byte[16 * 1024]
+    int read
+    while ((read = input.read(buffer)) != -1) {
+        digest.update(buffer, 0, read)
+    }
+    HexFormat.of().formatHex(digest.digest())
+}
 
 repositories {
     mavenCentral()
@@ -40,7 +55,7 @@ java {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 25
-    options.compilerArgs += ['-Xlint:all', '-Xlint:-deprecation', '-Xlint:-classfile']
+    options.compilerArgs += ['-Xlint:all', '-Xlint:-classfile']
 }
 
 def testRuntimeRoot = file("${System.getProperty('java.io.tmpdir')}/cloverreports-tests-${Math.abs(projectDir.absolutePath.hashCode())}")
@@ -61,6 +76,7 @@ tasks.register('prepareTestRuntime', Sync) {
 tasks.named('test') {
     dependsOn tasks.named('prepareTestRuntime')
     useJUnitPlatform()
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
     maxHeapSize = '512m'
     testClassesDirs = files(testRuntimeTests)
     classpath = files(testRuntimeTests, testRuntimeMain) + configurations.testRuntimeClasspath
@@ -68,8 +84,9 @@ tasks.named('test') {
 
 processResources {
     filteringCharset = 'UTF-8'
+    inputs.property('pluginVersion', pluginVersion)
     filesMatching('plugin.yml') {
-        expand(version: project.version)
+        expand(version: pluginVersion)
     }
 }
 
@@ -83,6 +100,82 @@ tasks.named('shadowJar') {
     mergeServiceFiles()
 }
 
-tasks.named('build') {
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+tasks.register('verifyJarContents') {
+    group = 'verification'
+    description = 'Verifies that project classes/resources in the shaded JAR exactly match the local build outputs.'
     dependsOn tasks.named('shadowJar')
+    inputs.files(sourceSets.main.output)
+    inputs.file(tasks.named('shadowJar').flatMap { it.archiveFile })
+    def manifestFile = layout.buildDirectory.file('reports/jar-content-manifest.sha256')
+    outputs.file(manifestFile)
+
+    doLast {
+        File jarPath = tasks.named('shadowJar').get().archiveFile.get().asFile
+        Map<String, String> expected = new LinkedHashMap<>()
+        Set<File> roots = new LinkedHashSet<>(sourceSets.main.output.files)
+        roots.findAll { it.exists() }.each { root ->
+            root.eachFileRecurse(groovy.io.FileType.FILES) { file ->
+                String entryName = root.toPath().relativize(file.toPath()).toString().replace('\\', '/')
+                file.withInputStream { input -> expected.put(entryName, sha256Stream(input)) }
+            }
+        }
+
+        Map<String, List<String>> actual = new LinkedHashMap<>()
+        List<String> manifestLines = new ArrayList<>()
+        new JarFile(jarPath).withCloseable { jar ->
+            jar.entries().each { entry ->
+                if (!entry.directory) {
+                    String hash
+                    jar.getInputStream(entry).withCloseable { input -> hash = sha256Stream(input) }
+                    actual.computeIfAbsent(entry.name) { new ArrayList<String>() }.add(hash)
+                    manifestLines.add("${hash}  ${entry.name}")
+                }
+            }
+        }
+
+        List<String> missingOrChanged = expected.findAll { name, hash ->
+            !actual.getOrDefault(name, List.of()).contains(hash)
+        }.keySet().sort()
+        List<String> unexpectedProjectClasses = actual.keySet().findAll { name ->
+            name.startsWith('com/slyph/cloverreports/') && name.endsWith('.class') && !expected.containsKey(name)
+        }.sort()
+        if (!missingOrChanged.isEmpty() || !unexpectedProjectClasses.isEmpty()) {
+            throw new GradleException("Shaded JAR/source mismatch. Missing or changed: ${missingOrChanged}; unexpected project classes: ${unexpectedProjectClasses}")
+        }
+
+        File output = manifestFile.get().asFile
+        output.parentFile.mkdirs()
+        output.setText(manifestLines.sort().join(System.lineSeparator()) + System.lineSeparator(), 'UTF-8')
+        String jarHash
+        jarPath.withInputStream { input -> jarHash = sha256Stream(input) }
+        logger.lifecycle("Verified ${expected.size()} project outputs in ${jarPath.name}; SHA-256 ${jarHash}")
+    }
+}
+
+tasks.register('writeArtifactChecksum') {
+    group = 'verification'
+    description = 'Writes SHA256SUMS for the verified plugin JAR.'
+    dependsOn tasks.named('verifyJarContents')
+    inputs.file(tasks.named('shadowJar').flatMap { it.archiveFile })
+    def checksumFile = layout.buildDirectory.file('checksums/SHA256SUMS')
+    outputs.file(checksumFile)
+
+    doLast {
+        File jarPath = tasks.named('shadowJar').get().archiveFile.get().asFile
+        String jarHash
+        jarPath.withInputStream { input -> jarHash = sha256Stream(input) }
+        File output = checksumFile.get().asFile
+        output.parentFile.mkdirs()
+        output.setText("${jarHash}  ${jarPath.name}${System.lineSeparator()}", 'UTF-8')
+        logger.lifecycle("Wrote ${output} for ${jarPath.name}")
+    }
+}
+
+tasks.named('build') {
+    dependsOn tasks.named('writeArtifactChecksum')
 }

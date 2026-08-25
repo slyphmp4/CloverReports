@@ -35,6 +35,19 @@ final class ResourceValidationTest {
     }
 
     @Test
+    void parsesGithubAutomationYaml() throws IOException {
+        for (String fileName : List.of("build.yml", "release.yml")) {
+            Path file = Path.of(".github", "workflows", fileName);
+            try (InputStream inputStream = Files.newInputStream(file)) {
+                assertNotNull(new Yaml().load(inputStream), fileName);
+            }
+        }
+        try (InputStream inputStream = Files.newInputStream(Path.of(".github", "dependabot.yml"))) {
+            assertNotNull(new Yaml().load(inputStream), "dependabot.yml");
+        }
+    }
+
+    @Test
     void declaresRequiredPluginMetadata() throws IOException {
         Map<?, ?> plugin = loadMap("plugin.yml");
         assertEquals("CloverReports", plugin.get("name"));
@@ -82,6 +95,21 @@ final class ResourceValidationTest {
             assertEquals("", notesPrefix.get(0), sectionName);
             assertTrue(String.valueOf(notesPrefix.get(1)).contains("Заметки модераторов"), sectionName);
         }
+    }
+
+    @Test
+    void shipsWithSecureReportAbuseAndEvidenceDefaults() throws IOException {
+        Map<?, ?> root = loadMap("config.yml");
+        Map<?, ?> report = (Map<?, ?>) root.get("report");
+        Map<?, ?> evidence = (Map<?, ?>) report.get("evidence");
+        Map<?, ?> cleanup = (Map<?, ?>) root.get("cleanup");
+
+        assertEquals(Boolean.TRUE, report.get("require-known-player"));
+        assertTrue(((Number) report.get("max-active-cases-per-reporter")).intValue() > 0);
+        assertTrue(((Number) report.get("max-reports-per-window")).intValue() > 0);
+        assertEquals(Boolean.FALSE, evidence.get("allow-any-host"));
+        assertTrue(!((List<?>) evidence.get("allowed-hosts")).isEmpty());
+        assertTrue(((Number) cleanup.get("pending-days")).intValue() > 0);
     }
 
     @SuppressWarnings("unchecked")
