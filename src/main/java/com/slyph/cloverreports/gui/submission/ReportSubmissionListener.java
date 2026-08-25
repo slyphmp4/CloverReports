@@ -142,7 +142,7 @@ public final class ReportSubmissionListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onPlayerChat(AsyncChatEvent event) {
         String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
         if (captureEvidenceChat(event.getPlayer(), message)) {
@@ -151,7 +151,7 @@ public final class ReportSubmissionListener implements Listener {
     }
 
     @SuppressWarnings("deprecation")
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onLegacyPlayerChat(AsyncPlayerChatEvent event) {
         // Cardboard 26.x dispatches AsyncPlayerChatEvent for player chat.
         // Paper keeps using AsyncChatEvent above.

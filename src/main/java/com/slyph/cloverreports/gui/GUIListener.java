@@ -157,7 +157,7 @@ public final class GUIListener implements Listener {
         });
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onPlayerChat(AsyncChatEvent event) {
         String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
         if (captureNoteChat(event.getPlayer(), message)) {
@@ -166,7 +166,7 @@ public final class GUIListener implements Listener {
     }
 
     @SuppressWarnings("deprecation")
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onLegacyPlayerChat(AsyncPlayerChatEvent event) {
         // Cardboard 26.x dispatches the Bukkit legacy chat event instead of
         // Paper's AsyncChatEvent. Keep this fallback Cardboard-only so Paper
