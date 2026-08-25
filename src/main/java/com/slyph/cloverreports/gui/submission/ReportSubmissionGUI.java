@@ -120,7 +120,7 @@ public final class ReportSubmissionGUI {
         }
         meta.setDisplayName(displayName);
         meta.setLore(lore.size() <= 50 ? lore : lore.subList(0, 50));
-        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_POTION_EFFECTS);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
         return item;
     }
