@@ -342,6 +342,72 @@ final class ReportManagerCaseIntegrationTest {
         assertFalse(firstManager.getLogPage(new HistoryFilter(null, null, "Cheats", "cheats", null, 0L, 0L), 0, 20).getLogs().isEmpty());
     }
 
+    @Test
+    void enforcesReporterAndGlobalActiveCaseLimitsTransactionally() {
+        ReportManager limited = new ReportManager(
+                databaseManager,
+                Logger.getLogger("CloverReportsLimitTest"),
+                new ReportManager.SubmissionLimits(2, 1, 10, 86_400L)
+        );
+        UUID firstReporter = UUID.randomUUID();
+
+        assertEquals(ReportManager.SubmissionStatus.SUCCESS, limited.submitReport(
+                firstReporter, "FirstReporter", UUID.randomUUID(), "TargetOne", "spam", "Spam", null
+        ).getStatus());
+        assertEquals(ReportManager.SubmissionStatus.REPORTER_ACTIVE_CAPACITY, limited.submitReport(
+                firstReporter, "FirstReporter", UUID.randomUUID(), "TargetTwo", "spam", "Spam", null
+        ).getStatus());
+        assertEquals(ReportManager.SubmissionStatus.SUCCESS, limited.submitReport(
+                UUID.randomUUID(), "SecondReporter", UUID.randomUUID(), "TargetTwo", "spam", "Spam", null
+        ).getStatus());
+        assertEquals(ReportManager.SubmissionStatus.GLOBAL_CAPACITY, limited.submitReport(
+                UUID.randomUUID(), "ThirdReporter", UUID.randomUUID(), "TargetThree", "spam", "Spam", null
+        ).getStatus());
+    }
+
+    @Test
+    void enforcesPersistentReporterWindowQuota() {
+        ReportManager limited = new ReportManager(
+                databaseManager,
+                Logger.getLogger("CloverReportsQuotaTest"),
+                new ReportManager.SubmissionLimits(10, 10, 2, 86_400L)
+        );
+        UUID reporterUuid = UUID.randomUUID();
+
+        for (int target = 1; target <= 2; target++) {
+            assertEquals(ReportManager.SubmissionStatus.SUCCESS, limited.submitReport(
+                    reporterUuid, "Reporter", UUID.randomUUID(), "Target" + target, "spam", "Spam", null
+            ).getStatus());
+        }
+        assertEquals(ReportManager.SubmissionStatus.REPORTER_QUOTA, limited.submitReport(
+                reporterUuid, "Reporter", UUID.randomUUID(), "TargetThree", "spam", "Spam", null
+        ).getStatus());
+    }
+
+    @Test
+    void removesStalePendingCasesButPreservesActivelyReviewedCases() throws Exception {
+        long staleCaseId = firstManager.submitReport(
+                UUID.randomUUID(), "FirstReporter", UUID.randomUUID(), "StaleTarget", "spam", "Spam", null
+        ).getCaseId();
+        long reviewedCaseId = firstManager.submitReport(
+                UUID.randomUUID(), "SecondReporter", UUID.randomUUID(), "ReviewedTarget", "spam", "Spam", null
+        ).getCaseId();
+        ReportManager.ReviewClaimResult claim = firstManager.claimReview(reviewedCaseId, UUID.randomUUID(), "Moderator");
+        assertTrue(claim.isAcquired());
+
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE report_cases SET updated_at = 0 WHERE id IN (?, ?)")) {
+            statement.setLong(1, staleCaseId);
+            statement.setLong(2, reviewedCaseId);
+            assertEquals(2, statement.executeUpdate());
+        }
+
+        assertTrue(firstManager.cleanupOldReports() > 0);
+        assertTrue(firstManager.getCase(staleCaseId).isEmpty());
+        assertTrue(firstManager.getCase(reviewedCaseId).isPresent());
+        assertTrue(firstManager.ownsReview(claim.getLease()));
+    }
+
     private int countRows(String table) throws Exception {
         try (Connection connection = databaseManager.getConnection();
              Statement statement = connection.createStatement();

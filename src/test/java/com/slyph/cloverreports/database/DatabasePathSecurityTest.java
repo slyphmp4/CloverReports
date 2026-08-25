@@ -8,7 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 final class DatabasePathSecurityTest {
 
@@ -38,8 +41,23 @@ final class DatabasePathSecurityTest {
     void rejectsExistingSymlinkTraversal() throws IOException {
         Path outside = Files.createDirectory(temporaryDirectory.resolve("outside"));
         Path link = temporaryDirectory.resolve("link");
-        Files.createSymbolicLink(link, outside);
+        try {
+            Files.createSymbolicLink(link, outside);
+        } catch (IOException | UnsupportedOperationException | SecurityException exception) {
+            assumeTrue(false, "Symbolic links are unavailable in this test environment: " + exception.getMessage());
+        }
         assertThrows(IllegalArgumentException.class,
                 () -> DatabaseManager.resolveConfinedPath(temporaryDirectory, "link/reports.db", "sqlite.file"));
+    }
+
+    @Test
+    void permitsDisablingMysqlTlsOnlyForExplicitLoopbackHosts() {
+        assertTrue(DatabaseManager.isLocalDatabaseHost("localhost"));
+        assertTrue(DatabaseManager.isLocalDatabaseHost("127.0.0.1"));
+        assertTrue(DatabaseManager.isLocalDatabaseHost("::1"));
+        assertTrue(DatabaseManager.isLocalDatabaseHost("[::1]"));
+        assertFalse(DatabaseManager.isLocalDatabaseHost("mysql.internal"));
+        assertFalse(DatabaseManager.isLocalDatabaseHost("192.168.1.20"));
+        assertFalse(DatabaseManager.isLocalDatabaseHost(null));
     }
 }

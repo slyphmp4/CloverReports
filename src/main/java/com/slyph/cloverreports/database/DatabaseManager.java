@@ -33,6 +33,7 @@ public final class DatabaseManager {
     private static final DateTimeFormatter BACKUP_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS");
     private static final String META_LEGACY_NOTES_MIGRATED = "legacy_notes_migrated";
     private static final String META_CASES_MIGRATED = "cases_migrated_v1";
+    public static final String META_SUBMISSION_GUARD = "submission_guard";
     private final CloverReports plugin;
     private final Logger logger;
     private final Settings fixedSettings;
@@ -110,6 +111,7 @@ public final class DatabaseManager {
                 createLogsTable(connection, settings.mysql);
                 createNotesTable(connection, settings.mysql);
                 createMetaTable(connection, settings.mysql);
+                setMeta(connection, META_SUBMISSION_GUARD, "1");
                 createCasesTable(connection, settings.mysql);
                 createIdentitiesTable(connection, settings.mysql);
                 createNameHistoryTable(connection, settings.mysql);
@@ -224,8 +226,13 @@ public final class DatabaseManager {
         String type = normalizeStorageType(plugin.getConfig().getString("storage.type", "sqlite"));
         long connectionTimeout = Math.max(1_000L, plugin.getConfig().getLong("storage.connection-timeout-ms", 5_000L));
         if (type.equals("mysql")) {
+            String host = plugin.getConfig().getString("mysql.host", "localhost");
+            boolean useSsl = plugin.getConfig().getBoolean("mysql.use-ssl", true);
+            if (!useSsl && !isLocalDatabaseHost(host)) {
+                throw new IllegalArgumentException("mysql.use-ssl may be disabled only for localhost or an explicit loopback address");
+            }
             return Settings.mysql(
-                    plugin.getConfig().getString("mysql.host", "localhost"),
+                    host,
                     Math.max(1, Math.min(65_535, plugin.getConfig().getInt("mysql.port", 3306))),
                     plugin.getConfig().getString("mysql.database", "cloverreports"),
                     plugin.getConfig().getString("mysql.username", "cloverreports"),
@@ -233,7 +240,7 @@ public final class DatabaseManager {
                     Math.max(2, plugin.getConfig().getInt("mysql.maximum-pool-size", 10)),
                     connectionTimeout,
                     Math.max(1_000, plugin.getConfig().getInt("mysql.socket-timeout-ms", 10_000)),
-                    plugin.getConfig().getBoolean("mysql.use-ssl", true)
+                    useSsl
             );
         }
 
@@ -491,6 +498,8 @@ public final class DatabaseManager {
         createIndex(connection, "reports", "idx_reports_case_time", "CREATE INDEX idx_reports_case_time ON reports (case_id, timestamp)");
         createIndex(connection, "reports", "idx_reports_case_reason", "CREATE INDEX idx_reports_case_reason ON reports (case_id, reason_key)");
         createIndex(connection, "reports", "idx_reports_reporter_uuid_status", "CREATE INDEX idx_reports_reporter_uuid_status ON reports (reporter_uuid, status)");
+        createIndex(connection, "reports", "idx_reports_reporter_identity_time", "CREATE INDEX idx_reports_reporter_identity_time ON reports (reporter_identity_key, timestamp)");
+        createIndex(connection, "reports", "idx_reports_reporter_identity_case", "CREATE INDEX idx_reports_reporter_identity_case ON reports (reporter_identity_key, case_id)");
         createIndex(connection, "reports", "idx_reports_reported_uuid_status", "CREATE INDEX idx_reports_reported_uuid_status ON reports (reported_uuid, status)");
         createIndex(connection, "reports", "idx_reports_reporter_target_status", "CREATE INDEX idx_reports_reporter_target_status ON reports (reporter_key, reported_key, status)");
         createIndex(connection, "reports", "idx_reports_reporter_status_action", "CREATE INDEX idx_reports_reporter_status_action ON reports (reporter_key, status, action)");
@@ -870,6 +879,18 @@ public final class DatabaseManager {
             }
         }
         return target;
+    }
+
+    static boolean isLocalDatabaseHost(String configuredHost) {
+        if (configuredHost == null) {
+            return false;
+        }
+        String host = configuredHost.trim().toLowerCase(Locale.ROOT);
+        return host.equals("localhost")
+                || host.equals("localhost.")
+                || host.equals("127.0.0.1")
+                || host.equals("::1")
+                || host.equals("[::1]");
     }
 
     private String normalizeStorageType(String configuredType) {

@@ -27,13 +27,27 @@ report:
   cooldown-seconds: 60
   attempt-min-interval-ms: 1500
   max-reports-per-case: 100
+  max-active-cases: 2000
+  max-active-cases-per-reporter: 10
+  max-reports-per-window: 30
+  quota-window-seconds: 86400
   online-only: false
+  require-known-player: true
   max-reason-length: 256
   punished-block-seconds: 300
   evidence:
     max-url-length: 2048
     require-https: true
-    allowed-hosts: []
+    allow-any-host: false
+    allowed-hosts:
+      - "youtube.com"
+      - "youtu.be"
+      - "imgur.com"
+      - "streamable.com"
+      - "medal.tv"
+      - "clips.twitch.tv"
+      - "cdn.discordapp.com"
+      - "media.discordapp.net"
     allowed-ports: [443]
     input-timeout-seconds: 120
     max-chat-links: 25
@@ -72,6 +86,7 @@ punishments:
 
 cleanup:
   enabled: true
+  pending-days: 14
   resolved-days: 30
   logs-days: 90
 

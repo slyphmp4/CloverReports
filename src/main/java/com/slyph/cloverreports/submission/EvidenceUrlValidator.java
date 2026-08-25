@@ -15,6 +15,16 @@ public final class EvidenceUrlValidator {
 
     private static final Pattern DOMAIN = Pattern.compile("[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+");
     private static final Pattern IPV4 = Pattern.compile("(?:\\d{1,3}\\.){3}\\d{1,3}");
+    private static final Set<String> DEFAULT_ALLOWED_HOSTS = Set.of(
+            "youtube.com",
+            "youtu.be",
+            "imgur.com",
+            "streamable.com",
+            "medal.tv",
+            "clips.twitch.tv",
+            "cdn.discordapp.com",
+            "media.discordapp.net"
+    );
     private final CloverReports plugin;
 
     public EvidenceUrlValidator(CloverReports plugin) {
@@ -67,9 +77,8 @@ public final class EvidenceUrlValidator {
         if (host == null || isPrivateHost(host)) {
             return ValidationResult.failure(Status.INVALID_HOST);
         }
-        Set<String> allowedHosts = getAllowedHosts();
-        boolean restrictHosts = !plugin.getConfig().getStringList("report.evidence.allowed-hosts").isEmpty();
-        if (restrictHosts && allowedHosts.stream().noneMatch(allowed -> host.equals(allowed) || host.endsWith("." + allowed))) {
+        boolean allowAnyHost = plugin.getConfig().getBoolean("report.evidence.allow-any-host", false);
+        if (!allowAnyHost && !isHostAllowed(host, plugin.getConfig().getStringList("report.evidence.allowed-hosts"))) {
             return ValidationResult.failure(Status.HOST_NOT_ALLOWED);
         }
 
@@ -97,7 +106,7 @@ public final class EvidenceUrlValidator {
         return ValidationResult.success(normalized);
     }
 
-    private String normalizeHost(String rawHost) {
+    private static String normalizeHost(String rawHost) {
         if (rawHost == null || rawHost.isBlank()) {
             return null;
         }
@@ -113,7 +122,7 @@ public final class EvidenceUrlValidator {
         return DOMAIN.matcher(host).matches() ? host : null;
     }
 
-    private boolean isPrivateHost(String host) {
+    private static boolean isPrivateHost(String host) {
         return IPV4.matcher(host).matches()
                 || host.indexOf(':') >= 0
                 || host.equals("localhost")
@@ -124,9 +133,18 @@ public final class EvidenceUrlValidator {
                 || host.endsWith(".home");
     }
 
-    private Set<String> getAllowedHosts() {
+    static boolean isHostAllowed(String rawHost, List<String> configuredHosts) {
+        String host = normalizeHost(rawHost);
+        if (host == null || isPrivateHost(host)) {
+            return false;
+        }
+        Set<String> allowedHosts = getAllowedHosts(configuredHosts);
+        return allowedHosts.stream().anyMatch(allowed -> host.equals(allowed) || host.endsWith("." + allowed));
+    }
+
+    private static Set<String> getAllowedHosts(List<String> configuredHosts) {
         Set<String> result = new HashSet<>();
-        for (String configured : plugin.getConfig().getStringList("report.evidence.allowed-hosts")) {
+        for (String configured : configuredHosts == null ? List.<String>of() : configuredHosts) {
             String value = configured == null ? "" : configured.trim().toLowerCase(Locale.ROOT);
             if (value.startsWith("*.")) {
                 value = value.substring(2);
@@ -139,7 +157,7 @@ public final class EvidenceUrlValidator {
                 result.add(host);
             }
         }
-        return result;
+        return result.isEmpty() ? DEFAULT_ALLOWED_HOSTS : Set.copyOf(result);
     }
 
     private Set<Integer> getAllowedPorts() {
