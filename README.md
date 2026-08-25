@@ -61,7 +61,7 @@ Windows:
 - Paper API перенесён со старой ветки `1.16.5` на `io.papermc.paper:paper-api:26.2`;
 - `api-version` обновлён до `26.2`;
 - toolchain и bytecode target обновлены до Java 25;
-- Gradle wrapper обновлён до 9.6.1;
+- Gradle wrapper обновлён до 9.7.1;
 - Shadow переведён на актуальный plugin id `com.gradleup.shadow`;
 - на Paper ввод из чата обрабатывается через `AsyncChatEvent`, а для Cardboard 26.x добавлен совместимый fallback через `AsyncPlayerChatEvent`;
 - служебный ввод доказательств и модераторских заметок перехватывается на `LOWEST`, до чат-форматтеров вроде CloverChat, чтобы сообщение не уходило в обычный чат;

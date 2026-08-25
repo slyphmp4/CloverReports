@@ -61,7 +61,7 @@ final class SourceSecurityRegressionTest {
 
         byte[] wrapper = Files.readAllBytes(Path.of("gradle", "wrapper", "gradle-wrapper.jar"));
         String wrapperHash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(wrapper));
-        assertTrue(wrapperHash.equals("497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7"));
+        assertTrue(wrapperHash.equals("7a9ce74cff467ca1bf60a4fcd9f05185acceda4d0f382434d393e17864262c5d"));
 
         String verification = Files.readString(Path.of("gradle", "verification-metadata.xml"));
         assertTrue(verification.contains("<verify-metadata>true</verify-metadata>"));
