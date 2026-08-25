@@ -40,7 +40,8 @@ public final class CloverReportsTabCompleter implements TabCompleter {
             if (args.length == 2) {
                 return reportManager.getReportedPlayers(ReportManager.STATUS_PENDING, args[1]);
             }
-            if (args.length == 3 && "clear".startsWith(args[2].toLowerCase(Locale.ROOT))) {
+            if (args.length == 3 && sender.hasPermission("cloverreports.note.clear-all")
+                    && "clear".startsWith(args[2].toLowerCase(Locale.ROOT))) {
                 return List.of("clear");
             }
             return Collections.emptyList();

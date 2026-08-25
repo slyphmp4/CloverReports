@@ -14,7 +14,6 @@ import com.slyph.cloverreports.utils.ChatUtil;
 import com.slyph.cloverreports.utils.Messages;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.Statistic;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -266,10 +265,9 @@ public final class ReportsGUI {
         if (meta == null) {
             return item;
         }
-        OfflinePlayer target = reportCase.getReportedUuid() == null
-                ? Bukkit.getOfflinePlayer(reportCase.getReportedName())
-                : Bukkit.getOfflinePlayer(reportCase.getReportedUuid());
-        meta.setOwningPlayer(target);
+        if (reportCase.getReportedUuid() != null) {
+            meta.setOwningPlayer(Bukkit.getOfflinePlayer(reportCase.getReportedUuid()));
+        }
         String path = listType == ReportListType.ACTIVE ? "report-head" : "history-head";
         meta.setDisplayName(Messages.getGui(path + ".display", Map.of(
                 "%player%", reportCase.getReportedName(),

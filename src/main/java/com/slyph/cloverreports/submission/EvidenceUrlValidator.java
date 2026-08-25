@@ -56,7 +56,7 @@ public final class EvidenceUrlValidator {
         if (!scheme.equals("http") && !scheme.equals("https")) {
             return ValidationResult.failure(Status.INVALID_SCHEME);
         }
-        if (plugin.getConfig().getBoolean("report.evidence.require-https", false) && !scheme.equals("https")) {
+        if (plugin.getConfig().getBoolean("report.evidence.require-https", true) && !scheme.equals("https")) {
             return ValidationResult.failure(Status.HTTPS_REQUIRED);
         }
         if (uri.getRawUserInfo() != null) {
@@ -145,7 +145,7 @@ public final class EvidenceUrlValidator {
     private Set<Integer> getAllowedPorts() {
         List<Integer> configured = plugin.getConfig().getIntegerList("report.evidence.allowed-ports");
         if (configured.isEmpty()) {
-            return Set.of(80, 443);
+            return Set.of(443);
         }
         Set<Integer> result = new HashSet<>();
         for (int port : configured) {

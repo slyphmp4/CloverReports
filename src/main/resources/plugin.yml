@@ -49,6 +49,9 @@ permissions:
   cloverreports.note:
     description: Разрешение на заметки модераторов
     default: op
+  cloverreports.note.clear-all:
+    description: Разрешение удалять все заметки по делу
+    default: op
   cloverreports.logs:
     description: Разрешение на просмотр логов репортов
     default: op
