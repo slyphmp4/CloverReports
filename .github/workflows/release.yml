@@ -78,4 +78,4 @@ jobs:
       - name: Publish JAR, checksums and content manifest
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload '${{ github.event.release.tag_name }}' dist/libs/*.jar dist/checksums/SHA256SUMS dist/reports/jar-content-manifest.sha256
+        run: gh release upload '${{ github.event.release.tag_name }}' --repo '${{ github.repository }}' dist/libs/*.jar dist/checksums/SHA256SUMS dist/reports/jar-content-manifest.sha256
