@@ -1,0 +1,55 @@
+name: Apply chat priority compatibility fix
+
+on:
+  push:
+    paths:
+      - '.github/workflows/chat-priority-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Patch chat capture priority
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          files = [
+              Path('src/main/java/com/slyph/cloverreports/gui/GUIListener.java'),
+              Path('src/main/java/com/slyph/cloverreports/gui/submission/ReportSubmissionListener.java'),
+          ]
+
+          for path in files:
+              s = path.read_text()
+              old = '@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)'
+              count = s.count(old)
+              if count < 2:
+                  raise SystemExit(f'{path}: expected at least 2 chat handlers, found {count}')
+              s = s.replace(old, '@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)', 2)
+              path.write_text(s)
+
+          build = Path('build.gradle')
+          s = build.read_text()
+          if "version = '1.1.1'" not in s:
+              raise SystemExit('Expected version 1.1.1 not found')
+          build.write_text(s.replace("version = '1.1.1'", "version = '1.1.2'", 1))
+          PY
+
+      - name: Commit fix
+        shell: bash
+        run: |
+          rm .github/workflows/chat-priority-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: capture report chat input before formatters"
+          git push
