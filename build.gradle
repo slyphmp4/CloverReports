@@ -41,7 +41,7 @@ dependencies {
     }
     implementation 'org.xerial:sqlite-jdbc:3.53.2.1'
     testImplementation "io.papermc.paper:paper-api:${paperApiVersion}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter:6.1.3'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'org.yaml:snakeyaml:2.2'
 }
