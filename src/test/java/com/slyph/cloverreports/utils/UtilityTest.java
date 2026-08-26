@@ -3,6 +3,8 @@ package com.slyph.cloverreports.utils;
 import com.slyph.cloverreports.models.ReporterStats;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,6 +15,9 @@ final class UtilityTest {
     void supportsBothRequiredHexFormats() {
         assertEquals("§x§F§F§0§0§0§0Red", ChatUtil.color("&FF0000Red"));
         assertEquals("§x§F§F§0§0§0§0Red", ChatUtil.color("&#FF0000Red"));
+        assertEquals(List.of("§aGreen", "§bBlue"), ChatUtil.color(List.of("&aGreen", "&bBlue")));
+        assertEquals("§aGreen §lBold", ChatUtil.color("&aGreen &LBold"));
+        assertEquals("Green Bold", ChatUtil.stripColor("&aGreen &lBold"));
     }
 
     @Test

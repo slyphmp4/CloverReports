@@ -69,14 +69,18 @@ public final class CloverReportsCommand implements CommandExecutor {
             sender.sendMessage(Messages.getChatArray("no-permission"));
             return true;
         }
-        boolean reloaded;
-        try {
-            reloaded = plugin.reloadPlugin();
-        } catch (RuntimeException exception) {
-            plugin.getLogger().severe("CloverReports reload error: " + (exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage()));
-            reloaded = false;
-        }
-        sender.sendMessage(Messages.getChatArray(reloaded ? "reload-success" : "reload-error"));
+        sender.sendMessage(Messages.getChatArray("reload-started"));
+        plugin.reloadPluginAsync().whenComplete((reloaded, throwable) -> {
+            if (throwable != null) {
+                plugin.getLogger().severe("CloverReports reload error: " + (throwable.getMessage() == null ? throwable.getClass().getSimpleName() : throwable.getMessage()));
+            }
+            Runnable response = () -> sender.sendMessage(Messages.getChatArray(Boolean.TRUE.equals(reloaded) && throwable == null ? "reload-success" : "reload-error"));
+            if (Bukkit.isPrimaryThread()) {
+                response.run();
+            } else if (plugin.isEnabled()) {
+                Bukkit.getScheduler().runTask(plugin, response);
+            }
+        });
         return true;
     }
 

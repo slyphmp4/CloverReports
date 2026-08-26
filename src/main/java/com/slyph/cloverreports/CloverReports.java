@@ -3,6 +3,7 @@ package com.slyph.cloverreports;
 import com.slyph.cloverreports.commands.CloverReportsCommand;
 import com.slyph.cloverreports.commands.CloverReportsTabCompleter;
 import com.slyph.cloverreports.commands.ReportCommand;
+import com.slyph.cloverreports.commands.ReportSuggestionCache;
 import com.slyph.cloverreports.commands.ReportTabCompleter;
 import com.slyph.cloverreports.commands.ViewReportsCommand;
 import com.slyph.cloverreports.commands.ViewReportsTabCompleter;
@@ -12,15 +13,24 @@ import com.slyph.cloverreports.gui.GUIListener;
 import com.slyph.cloverreports.gui.submission.ReportSubmissionListener;
 import com.slyph.cloverreports.identity.PlayerIdentityListener;
 import com.slyph.cloverreports.managers.ReportManager;
+import com.slyph.cloverreports.models.ReportedPlayerIndex;
 import com.slyph.cloverreports.reasons.ReportReasons;
 import com.slyph.cloverreports.utils.Messages;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
-@SuppressWarnings("deprecation")
 public final class CloverReports extends JavaPlugin {
 
     private static CloverReports instance;
@@ -28,16 +38,28 @@ public final class CloverReports extends JavaPlugin {
     private ReportManager reportManager;
     private LogExportService exportService;
     private ReportSubmissionListener submissionListener;
+    private final ReportSuggestionCache suggestionCache = new ReportSuggestionCache();
+    private final AtomicBoolean reloadInProgress = new AtomicBoolean();
+    private final AtomicLong suggestionGeneration = new AtomicLong();
+    private BukkitTask suggestionRefreshTask;
+    private ExecutorService databaseLifecycleExecutor;
 
     @Override
     public void onEnable() {
         instance = this;
+        databaseLifecycleExecutor = createDatabaseLifecycleExecutor();
         saveDefaultConfig();
         getConfig().options().copyDefaults(true);
         Messages.load(this);
         ReportReasons.load(this);
 
-        databaseManager = new DatabaseManager(this);
+        try {
+            databaseManager = DatabaseManager.fromCurrentConfig(this);
+        } catch (RuntimeException exception) {
+            getLogger().log(Level.SEVERE, "Invalid database configuration", exception);
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
         if (!databaseManager.connect() || !databaseManager.createReportsTable()) {
             getLogger().severe("CloverReports не смог подключиться к базе данных и будет выключен.");
             getServer().getPluginManager().disablePlugin(this);
@@ -48,6 +70,7 @@ public final class CloverReports extends JavaPlugin {
         exportService = new LogExportService(this, reportManager);
         submissionListener = new ReportSubmissionListener(this, reportManager);
         registerCommands();
+        scheduleSuggestionRefresh();
 
         GUIListener guiListener = new GUIListener(reportManager);
         PlayerIdentityListener identityListener = new PlayerIdentityListener(this, reportManager);
@@ -66,15 +89,20 @@ public final class CloverReports extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (suggestionRefreshTask != null) {
+            suggestionRefreshTask.cancel();
+            suggestionRefreshTask = null;
+        }
+        suggestionGeneration.incrementAndGet();
+        suggestionCache.clear();
         if (exportService != null) {
             exportService.close();
         }
-        if (reportManager != null) {
-            reportManager.releaseServerReviews();
-        }
-        if (databaseManager != null) {
-            databaseManager.disconnect();
-        }
+        ReportManager managerToClose = reportManager;
+        DatabaseManager databaseToClose = databaseManager;
+        reportManager = null;
+        databaseManager = null;
+        closeDatabaseLifecycleAsync(managerToClose, databaseToClose);
         if (instance != null) {
             getServer().getConsoleSender().sendMessage(Messages.getChatArray("plugin-disabled"));
         }
@@ -85,28 +113,97 @@ public final class CloverReports extends JavaPlugin {
         PluginCommand reportCommand = Objects.requireNonNull(getCommand("report"), "report");
         reportCommand.setExecutor(new ReportCommand(submissionListener));
         reportCommand.setTabCompleter(new ReportTabCompleter());
-        reportCommand.setPermissionMessage(String.join("\n", Messages.getChatList("no-permission")));
 
         PluginCommand viewReportsCommand = Objects.requireNonNull(getCommand("viewreports"), "viewreports");
         viewReportsCommand.setExecutor(new ViewReportsCommand(reportManager));
-        viewReportsCommand.setTabCompleter(new ViewReportsTabCompleter(reportManager));
-        viewReportsCommand.setPermissionMessage(String.join("\n", Messages.getChatList("no-permission")));
+        viewReportsCommand.setTabCompleter(new ViewReportsTabCompleter(suggestionCache));
 
         PluginCommand cloverReportsCommand = Objects.requireNonNull(getCommand("cloverreports"), "cloverreports");
         cloverReportsCommand.setExecutor(new CloverReportsCommand(this, exportService));
-        cloverReportsCommand.setTabCompleter(new CloverReportsTabCompleter(reportManager));
+        cloverReportsCommand.setTabCompleter(new CloverReportsTabCompleter(suggestionCache));
     }
 
-    public boolean reloadPlugin() {
-        reloadConfig();
-        getConfig().options().copyDefaults(true);
-        Messages.load(this);
-        ReportReasons.load(this);
+    private void scheduleSuggestionRefresh() {
+        if (suggestionRefreshTask != null) {
+            suggestionRefreshTask.cancel();
+        }
+        long generation = suggestionGeneration.incrementAndGet();
+        long refreshTicks = Math.max(1L, getConfig().getLong("review.list-refresh-seconds", 5L)) * 20L;
+        suggestionRefreshTask = getServer().getScheduler().runTaskTimerAsynchronously(this, () -> refreshSuggestionCache(generation), 0L, refreshTicks);
+    }
 
-        DatabaseManager candidate = new DatabaseManager(this);
+    private void refreshSuggestionCache(long generation) {
+        ReportManager current = reportManager;
+        if (current == null) {
+            return;
+        }
+        Optional<ReportedPlayerIndex> pending = current.getReportedPlayerIndex(ReportManager.STATUS_PENDING, 10_000);
+        Optional<ReportedPlayerIndex> resolved = current.getReportedPlayerIndex(ReportManager.STATUS_RESOLVED, 10_000);
+        if (generation == suggestionGeneration.get() && current == reportManager && pending.isPresent() && resolved.isPresent()) {
+            suggestionCache.replace(pending.get(), resolved.get());
+        }
+    }
+
+    public CompletableFuture<Boolean> reloadPluginAsync() {
+        if (!reloadInProgress.compareAndSet(false, true)) {
+            return CompletableFuture.completedFuture(false);
+        }
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+        DatabaseManager candidate;
+        try {
+            reloadConfig();
+            getConfig().options().copyDefaults(true);
+            Messages.load(this);
+            ReportReasons.load(this);
+            candidate = DatabaseManager.fromCurrentConfig(this);
+        } catch (RuntimeException exception) {
+            getLogger().log(Level.SEVERE, "Could not load configuration during reload", exception);
+            reloadInProgress.set(false);
+            result.complete(false);
+            return result;
+        }
+
+        ExecutorService executor = databaseLifecycleExecutor;
+        if (executor == null || executor.isShutdown()) {
+            reloadInProgress.set(false);
+            result.complete(false);
+            return result;
+        }
+        try {
+            executor.execute(() -> prepareReload(candidate, result));
+        } catch (RejectedExecutionException exception) {
+            getLogger().log(Level.WARNING, "Database reload executor is unavailable", exception);
+            reloadInProgress.set(false);
+            result.complete(false);
+        }
+        return result;
+    }
+
+    private void prepareReload(DatabaseManager candidate, CompletableFuture<Boolean> result) {
         if (!candidate.connect() || !candidate.createReportsTable()) {
             candidate.disconnect();
-            return false;
+            completeReload(result, false);
+            return;
+        }
+        if (!isEnabled()) {
+            candidate.disconnect();
+            completeReload(result, false);
+            return;
+        }
+        try {
+            getServer().getScheduler().runTask(this, () -> applyReload(candidate, result));
+        } catch (RuntimeException exception) {
+            candidate.disconnect();
+            getLogger().log(Level.WARNING, "Could not apply prepared database reload", exception);
+            completeReload(result, false);
+        }
+    }
+
+    private void applyReload(DatabaseManager candidate, CompletableFuture<Boolean> result) {
+        if (!isEnabled()) {
+            executeDatabaseLifecycle(candidate::disconnect);
+            completeReload(result, false);
+            return;
         }
 
         DatabaseManager previous = databaseManager;
@@ -117,20 +214,68 @@ public final class CloverReports extends JavaPlugin {
             previous = reportManager.replaceDatabase(candidate);
         }
         if (previous != null && previous != candidate) {
-            previous.disconnect();
+            executeDatabaseLifecycle(previous::disconnect);
         }
 
-        String permissionMessage = String.join("\n", Messages.getChatList("no-permission"));
-        PluginCommand reportCommand = getCommand("report");
-        PluginCommand viewReportsCommand = getCommand("viewreports");
-        if (reportCommand != null) {
-            reportCommand.setPermissionMessage(permissionMessage);
-        }
-        if (viewReportsCommand != null) {
-            viewReportsCommand.setPermissionMessage(permissionMessage);
-        }
+        suggestionCache.clear();
+        scheduleSuggestionRefresh();
         getServer().getScheduler().runTaskAsynchronously(this, reportManager::cleanupOldReports);
-        return true;
+        completeReload(result, true);
+    }
+
+    private void completeReload(CompletableFuture<Boolean> result, boolean success) {
+        reloadInProgress.set(false);
+        result.complete(success);
+    }
+
+    private ExecutorService createDatabaseLifecycleExecutor() {
+        return Executors.newSingleThreadExecutor(task -> {
+            Thread thread = new Thread(task, "CloverReports-database-lifecycle");
+            thread.setDaemon(true);
+            return thread;
+        });
+    }
+
+    private boolean executeDatabaseLifecycle(Runnable operation) {
+        ExecutorService executor = databaseLifecycleExecutor;
+        if (executor == null || executor.isShutdown()) {
+            return false;
+        }
+        try {
+            executor.execute(operation);
+            return true;
+        } catch (RejectedExecutionException exception) {
+            getLogger().log(Level.WARNING, "Database lifecycle operation was rejected", exception);
+            return false;
+        }
+    }
+
+    private void closeDatabaseLifecycleAsync(ReportManager manager, DatabaseManager database) {
+        ExecutorService executor = databaseLifecycleExecutor;
+        databaseLifecycleExecutor = null;
+        if (executor == null) {
+            if (database != null) {
+                database.disconnect();
+            }
+            return;
+        }
+        try {
+            executor.execute(() -> {
+                try {
+                    if (manager != null) {
+                        manager.releaseServerReviews();
+                    }
+                } finally {
+                    if (database != null) {
+                        database.disconnect();
+                    }
+                }
+            });
+        } catch (RejectedExecutionException exception) {
+            getLogger().log(Level.WARNING, "Database shutdown operation was rejected", exception);
+        } finally {
+            executor.shutdown();
+        }
     }
 
     public static CloverReports getInstance() {

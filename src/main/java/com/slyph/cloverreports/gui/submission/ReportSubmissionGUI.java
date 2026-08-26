@@ -19,7 +19,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-@SuppressWarnings("deprecation")
 public final class ReportSubmissionGUI {
 
     public static final int PREVIOUS_SLOT = 45;
@@ -46,7 +45,7 @@ public final class ReportSubmissionGUI {
         int page = Math.max(0, Math.min(requestedPage, totalPages - 1));
         Map<String, String> placeholders = placeholders(targetName, page, totalPages, null, evidenceUrl);
         ReportSubmissionHolder holder = new ReportSubmissionHolder(ReportSubmissionMenuType.REASON_SELECTION, targetName, targetUuid, page, totalPages, null, evidenceUrl);
-        Inventory inventory = Bukkit.createInventory(holder, 54, guiText("submission.reason-selection.title", "&0Жалоба на %player%", placeholders));
+        Inventory inventory = Bukkit.createInventory(holder, 54, ChatUtil.component(guiText("submission.reason-selection.title", "&0Жалоба на %player%", placeholders)));
         holder.setInventory(inventory);
 
         fill(inventory, item(material("submission.filler.material", Material.GRAY_STAINED_GLASS_PANE), guiText("submission.filler.display", "&7", Map.of()), guiList("submission.filler.lore", List.of(), Map.of())));
@@ -77,7 +76,7 @@ public final class ReportSubmissionGUI {
     public void openConfirmation(Player player, String targetName, UUID targetUuid, int reasonPage, ReportReason reason, String evidenceUrl) {
         Map<String, String> placeholders = placeholders(targetName, reasonPage, 1, reason, evidenceUrl);
         ReportSubmissionHolder holder = new ReportSubmissionHolder(ReportSubmissionMenuType.CONFIRMATION, targetName, targetUuid, reasonPage, 1, reason, evidenceUrl);
-        Inventory inventory = Bukkit.createInventory(holder, 36, guiText("submission.confirmation.title", "&0Подтверждение жалобы", placeholders));
+        Inventory inventory = Bukkit.createInventory(holder, 36, ChatUtil.component(guiText("submission.confirmation.title", "&0Подтверждение жалобы", placeholders)));
         holder.setInventory(inventory);
         fill(inventory, item(material("submission.filler.material", Material.GRAY_STAINED_GLASS_PANE), guiText("submission.filler.display", "&7", Map.of()), guiList("submission.filler.lore", List.of(), Map.of())));
 
@@ -119,9 +118,10 @@ public final class ReportSubmissionGUI {
         if (meta == null) {
             return item;
         }
-        meta.setDisplayName(displayName);
-        meta.setLore(lore.size() <= 50 ? lore : lore.subList(0, 50));
-        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        meta.displayName(ChatUtil.component(displayName));
+        List<String> visibleLore = lore.size() <= 50 ? lore : lore.subList(0, 50);
+        meta.lore(ChatUtil.components(visibleLore));
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
         item.setItemMeta(meta);
         return item;
     }

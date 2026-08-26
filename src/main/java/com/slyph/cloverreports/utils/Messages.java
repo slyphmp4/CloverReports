@@ -1,7 +1,6 @@
 package com.slyph.cloverreports.utils;
 
 import com.slyph.cloverreports.CloverReports;
-import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -19,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-@SuppressWarnings("deprecation")
 public final class Messages {
 
     private static File messagesFile;
@@ -94,8 +92,8 @@ public final class Messages {
 
     private static String firstVisibleLine(List<String> lines, String fallback) {
         for (String line : lines) {
-            String stripped = ChatColor.stripColor(line);
-            if (stripped != null && !stripped.isBlank()) {
+            String stripped = ChatUtil.stripColor(line);
+            if (!stripped.isBlank()) {
                 return line;
             }
         }
@@ -323,7 +321,8 @@ public final class Messages {
         } catch (IOException exception) {
             try {
                 Files.deleteIfExists(temporary.toPath());
-            } catch (IOException ignored) {
+            } catch (IOException cleanupException) {
+                exception.addSuppressed(cleanupException);
             }
             throw new IllegalStateException("Cannot save " + target.getName(), exception);
         }
