@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.1 — 2026-08-26
+
+- Исправлено создание GUI на Cardboard 26.x: незавершённый Adventure-overload `createInventory` больше не используется на Cardboard.
+- Paper продолжает использовать современный Adventure Component API; legacy String-overload изолирован одним точечным compatibility factory.
+- Добавлены regression tests, запрещающие прямое создание inventory в GUI-классах.
+
 ## 1.3.0 — 2026-08-26
 
 - Убраны JDBC-запросы из синхронных tab completer; добавлен асинхронно обновляемый снимок подсказок.

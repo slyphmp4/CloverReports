@@ -54,6 +54,15 @@ final class SourceSecurityRegressionTest {
     }
 
     @Test
+    void guiInventoryCreationAlwaysUsesTheCardboardCompatibilityFactory() throws Exception {
+        for (String fileName : List.of("gui/ReportsGUI.java", "gui/submission/ReportSubmissionGUI.java")) {
+            String source = Files.readString(Path.of("src/main/java/com/slyph/cloverreports", fileName));
+            assertTrue(source.contains("InventoryCompat.create("), fileName);
+            assertFalse(source.contains("Bukkit.createInventory("), fileName);
+        }
+    }
+
+    @Test
     void pinsBuildSupplyChainAndOfficialGradleWrapper() throws Exception {
         List<String> unpinnedActions = new ArrayList<>();
         try (var workflows = Files.walk(Path.of(".github", "workflows"))) {

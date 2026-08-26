@@ -1,6 +1,7 @@
 package com.slyph.cloverreports.gui;
 
 import com.slyph.cloverreports.CloverReports;
+import com.slyph.cloverreports.compat.InventoryCompat;
 import com.slyph.cloverreports.managers.ReportManager;
 import com.slyph.cloverreports.managers.ReportManager.ReviewLease;
 import com.slyph.cloverreports.models.CasePage;
@@ -116,10 +117,10 @@ public final class ReportsGUI {
 
     public static void openActionGUI(Player player, ReportCase reportCase, ReviewLease lease, ReportListType returnListType, HistoryFilter returnFilter, int returnPage) {
         ReportActionHolder holder = new ReportActionHolder(reportCase, lease, ReportMenuType.ACTION, returnListType, returnFilter, returnPage, 0, null);
-        Inventory inventory = Bukkit.createInventory(holder, 27, ChatUtil.component(Messages.getGui("action.title", Map.of(
+        Inventory inventory = InventoryCompat.create(holder, 27, Messages.getGui("action.title", Map.of(
                 "%player%", reportCase.getReportedName(),
                 "%case_id%", String.valueOf(reportCase.getId())
-        ))));
+        )));
         holder.setInventory(inventory);
         fillInventory(inventory, Material.GRAY_STAINED_GLASS_PANE);
         inventory.setItem(10, createItem(Material.LIME_DYE, Messages.getGui("action.delete.display"), Messages.getGuiList("action.delete.lore")));
@@ -141,10 +142,10 @@ public final class ReportsGUI {
         int totalPages = Math.max(1, (int) Math.ceil(reasons.size() / (double) CLOSE_REASON_SLOTS.length));
         int page = Math.max(0, Math.min(requestedPage, totalPages - 1));
         ReportActionHolder holder = childHolder(source, ReportMenuType.CLOSE_REASON_SELECTION, page, null);
-        Inventory inventory = Bukkit.createInventory(holder, 36, ChatUtil.component(Messages.getGui("close-reason-selection.title", Map.of(
+        Inventory inventory = InventoryCompat.create(holder, 36, Messages.getGui("close-reason-selection.title", Map.of(
                 "%player%", source.getReportedPlayer(),
                 "%case_id%", String.valueOf(source.getCaseId())
-        ))));
+        )));
         holder.setInventory(inventory);
         fillInventory(inventory, Material.GREEN_STAINED_GLASS_PANE);
         int offset = page * CLOSE_REASON_SLOTS.length;
@@ -169,10 +170,10 @@ public final class ReportsGUI {
         int totalPages = Math.max(1, (int) Math.ceil(reasons.size() / (double) BAN_REASON_SLOTS.length));
         int page = Math.max(0, Math.min(requestedPage, totalPages - 1));
         ReportActionHolder holder = childHolder(source, ReportMenuType.BAN_REASON_SELECTION, page, null);
-        Inventory inventory = Bukkit.createInventory(holder, 54, ChatUtil.component(Messages.getGui("ban-reason-selection.title", Map.of(
+        Inventory inventory = InventoryCompat.create(holder, 54, Messages.getGui("ban-reason-selection.title", Map.of(
                 "%player%", source.getReportedPlayer(),
                 "%case_id%", String.valueOf(source.getCaseId())
-        ))));
+        )));
         holder.setInventory(inventory);
         fillInventory(inventory, Material.RED_STAINED_GLASS_PANE);
         int offset = page * BAN_REASON_SLOTS.length;
@@ -194,10 +195,10 @@ public final class ReportsGUI {
 
     public static void openBanConfirmationGUI(Player player, ReportActionHolder source, String reason) {
         ReportActionHolder holder = childHolder(source, ReportMenuType.BAN_CONFIRMATION, source.getReasonPage(), reason);
-        Inventory inventory = Bukkit.createInventory(holder, 45, ChatUtil.component(Messages.getGui("ban-confirm.title", Map.of(
+        Inventory inventory = InventoryCompat.create(holder, 45, Messages.getGui("ban-confirm.title", Map.of(
                 "%player%", source.getReportedPlayer(),
                 "%case_id%", String.valueOf(source.getCaseId())
-        ))));
+        )));
         holder.setInventory(inventory);
         fillConfirmation(inventory);
         inventory.setItem(BAN_CONFIRM_SLOT, createItem(Material.RED_CONCRETE, Messages.getGui("ban-confirm.confirm.display"), Messages.getGuiList("ban-confirm.confirm.lore", Map.of("%reason%", ReportReasons.getDisplay(reason)))));
@@ -211,7 +212,7 @@ public final class ReportsGUI {
 
     private static void renderReportsGUI(Player player, ReportListType listType, HistoryFilter filter, CasePage casePage) {
         ReportsHolder holder = new ReportsHolder(casePage.getPage(), casePage.getTotalPages(), listType, filter);
-        Inventory inventory = Bukkit.createInventory(holder, 54, ChatUtil.component(getTitle(listType, filter, casePage)));
+        Inventory inventory = InventoryCompat.create(holder, 54, getTitle(listType, filter, casePage));
         holder.setInventory(inventory);
         fillInventory(inventory, Material.LIGHT_GRAY_STAINED_GLASS_PANE);
         List<ReportCase> cases = casePage.getCases();
