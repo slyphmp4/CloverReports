@@ -270,12 +270,12 @@ public final class ReportsGUI {
             meta.setOwningPlayer(Bukkit.getOfflinePlayer(reportCase.getReportedUuid()));
         }
         String path = listType == ReportListType.ACTIVE ? "report-head" : "history-head";
-        meta.displayName(ChatUtil.component(Messages.getGui(path + ".display", Map.of(
+        meta.displayName(ChatUtil.itemComponent(Messages.getGui(path + ".display", Map.of(
                 "%player%", reportCase.getReportedName(),
                 "%count%", String.valueOf(reportCase.getReports().size()),
                 "%case_id%", String.valueOf(reportCase.getId())
         ))));
-        meta.lore(ChatUtil.components(listType == ReportListType.ACTIVE ? createActiveLore(viewer, reportCase) : createHistoryLore(viewer, reportCase)));
+        meta.lore(ChatUtil.itemComponents(listType == ReportListType.ACTIVE ? createActiveLore(viewer, reportCase) : createHistoryLore(viewer, reportCase)));
         item.setItemMeta(meta);
         return item;
     }
@@ -512,8 +512,8 @@ public final class ReportsGUI {
         if (meta == null) {
             return item;
         }
-        meta.displayName(ChatUtil.component(displayName));
-        meta.lore(ChatUtil.components(lore));
+        meta.displayName(ChatUtil.itemComponent(displayName));
+        meta.lore(ChatUtil.itemComponents(lore));
         item.setItemMeta(meta);
         return item;
     }

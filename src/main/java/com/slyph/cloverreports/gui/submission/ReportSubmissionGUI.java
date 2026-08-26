@@ -118,9 +118,9 @@ public final class ReportSubmissionGUI {
         if (meta == null) {
             return item;
         }
-        meta.displayName(ChatUtil.component(displayName));
+        meta.displayName(ChatUtil.itemComponent(displayName));
         List<String> visibleLore = lore.size() <= 50 ? lore : lore.subList(0, 50);
-        meta.lore(ChatUtil.components(visibleLore));
+        meta.lore(ChatUtil.itemComponents(visibleLore));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
         item.setItemMeta(meta);
         return item;

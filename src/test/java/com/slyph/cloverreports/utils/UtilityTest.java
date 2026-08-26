@@ -1,6 +1,7 @@
 package com.slyph.cloverreports.utils;
 
 import com.slyph.cloverreports.models.ReporterStats;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -23,6 +24,15 @@ final class UtilityTest {
     @Test
     void neutralizesUserFormattingAndControlCharacters() {
         assertEquals("Hello ＆cRed text", ChatUtil.escapeUserText("Hello &cRed\n§ctext"));
+    }
+
+    @Test
+    void disablesMinecraftsDefaultItalicsForItemText() {
+        assertEquals(TextDecoration.State.FALSE, ChatUtil.itemComponent("&aНазвание").decoration(TextDecoration.ITALIC));
+        assertTrue(ChatUtil.itemComponents(List.of("&7Строка", "&fЕщё строка")).stream()
+                .allMatch(component -> component.decoration(TextDecoration.ITALIC) == TextDecoration.State.FALSE));
+        assertEquals(TextDecoration.State.TRUE,
+                ChatUtil.itemComponent("&oНамеренный курсив").children().get(0).decoration(TextDecoration.ITALIC));
     }
 
     @Test

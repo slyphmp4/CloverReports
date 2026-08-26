@@ -8,7 +8,7 @@ plugins {
 }
 
 group = 'com.slyph'
-version = '1.3.1'
+version = '1.3.2'
 def pluginVersion = version.toString()
 
 def paperApiVersion = findProperty('paperApiVersion') ?: '26.2.build.117-stable'

@@ -1,6 +1,7 @@
 package com.slyph.cloverreports.utils;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
@@ -53,6 +54,20 @@ public final class ChatUtil {
         List<Component> result = new ArrayList<>(input.size());
         for (String line : input) {
             result.add(component(line));
+        }
+        return result;
+    }
+
+    public static Component itemComponent(String input) {
+        return Component.empty()
+                .decoration(TextDecoration.ITALIC, false)
+                .append(component(input));
+    }
+
+    public static List<Component> itemComponents(List<String> input) {
+        List<Component> result = new ArrayList<>(input.size());
+        for (String line : input) {
+            result.add(itemComponent(line));
         }
         return result;
     }
