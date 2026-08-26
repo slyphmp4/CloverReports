@@ -1,10 +1,10 @@
 package com.slyph.cloverreports.gui.submission;
 
+import com.slyph.cloverreports.compat.InventoryCompat;
 import com.slyph.cloverreports.reasons.ReportReason;
 import com.slyph.cloverreports.reasons.ReportReasons;
 import com.slyph.cloverreports.utils.ChatUtil;
 import com.slyph.cloverreports.utils.Messages;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -45,7 +45,7 @@ public final class ReportSubmissionGUI {
         int page = Math.max(0, Math.min(requestedPage, totalPages - 1));
         Map<String, String> placeholders = placeholders(targetName, page, totalPages, null, evidenceUrl);
         ReportSubmissionHolder holder = new ReportSubmissionHolder(ReportSubmissionMenuType.REASON_SELECTION, targetName, targetUuid, page, totalPages, null, evidenceUrl);
-        Inventory inventory = Bukkit.createInventory(holder, 54, ChatUtil.component(guiText("submission.reason-selection.title", "&0Жалоба на %player%", placeholders)));
+        Inventory inventory = InventoryCompat.create(holder, 54, guiText("submission.reason-selection.title", "&0Жалоба на %player%", placeholders));
         holder.setInventory(inventory);
 
         fill(inventory, item(material("submission.filler.material", Material.GRAY_STAINED_GLASS_PANE), guiText("submission.filler.display", "&7", Map.of()), guiList("submission.filler.lore", List.of(), Map.of())));
@@ -76,7 +76,7 @@ public final class ReportSubmissionGUI {
     public void openConfirmation(Player player, String targetName, UUID targetUuid, int reasonPage, ReportReason reason, String evidenceUrl) {
         Map<String, String> placeholders = placeholders(targetName, reasonPage, 1, reason, evidenceUrl);
         ReportSubmissionHolder holder = new ReportSubmissionHolder(ReportSubmissionMenuType.CONFIRMATION, targetName, targetUuid, reasonPage, 1, reason, evidenceUrl);
-        Inventory inventory = Bukkit.createInventory(holder, 36, ChatUtil.component(guiText("submission.confirmation.title", "&0Подтверждение жалобы", placeholders)));
+        Inventory inventory = InventoryCompat.create(holder, 36, guiText("submission.confirmation.title", "&0Подтверждение жалобы", placeholders));
         holder.setInventory(inventory);
         fill(inventory, item(material("submission.filler.material", Material.GRAY_STAINED_GLASS_PANE), guiText("submission.filler.display", "&7", Map.of()), guiList("submission.filler.lore", List.of(), Map.of())));
 
