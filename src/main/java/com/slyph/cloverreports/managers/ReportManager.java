@@ -11,6 +11,7 @@ import com.slyph.cloverreports.models.ReportCase;
 import com.slyph.cloverreports.models.ReportLog;
 import com.slyph.cloverreports.models.ReportPage;
 import com.slyph.cloverreports.models.ReporterStats;
+import com.slyph.cloverreports.models.ReportedPlayerIndex;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -21,7 +22,6 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -465,6 +465,39 @@ public final class ReportManager {
         }
         suggestionCache.put(cacheKey, new CachedSuggestions(immutable, now + CACHE_MILLIS));
         return immutable;
+    }
+
+    public Optional<ReportedPlayerIndex> getReportedPlayerIndex(String status, int maximumPlayers) {
+        int safeLimit = Math.max(1, Math.min(10_000, maximumPlayers));
+        String countSql = "SELECT COUNT(*) FROM report_cases WHERE status = ?";
+        String entriesSql = "SELECT COALESCE(pi.player_name, c.reported_name) AS display_name, COUNT(*) AS case_count "
+                + "FROM report_cases c LEFT JOIN player_identities pi ON pi.player_uuid = c.reported_uuid "
+                + "WHERE c.status = ? GROUP BY c.identity_key, COALESCE(pi.player_name, c.reported_name) "
+                + "ORDER BY MAX(c.updated_at) DESC LIMIT ?";
+        DatabaseManager currentDatabase = databaseManager;
+        try (Connection connection = currentDatabase.getConnection()) {
+            int totalCases;
+            try (PreparedStatement statement = connection.prepareStatement(countSql)) {
+                statement.setString(1, status);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    totalCases = resultSet.next() ? resultSet.getInt(1) : 0;
+                }
+            }
+            List<ReportedPlayerIndex.Entry> entries = new ArrayList<>();
+            try (PreparedStatement statement = connection.prepareStatement(entriesSql)) {
+                statement.setString(1, status);
+                statement.setInt(2, safeLimit);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    while (resultSet.next()) {
+                        entries.add(new ReportedPlayerIndex.Entry(resultSet.getString("display_name"), resultSet.getInt("case_count")));
+                    }
+                }
+            }
+            return Optional.of(new ReportedPlayerIndex(entries, totalCases));
+        } catch (SQLException exception) {
+            logError("Case suggestion index", exception);
+            return Optional.empty();
+        }
     }
 
     public OptionalLong findOpenCaseId(UUID targetUuid, String targetName) {
@@ -2093,15 +2126,6 @@ public final class ReportManager {
         } catch (SQLException exception) {
             return null;
         }
-    }
-
-    private ReviewLease findLocalLeaseByModerator(String moderator) {
-        for (ReviewLease lease : localLeases.values()) {
-            if (lease.moderatorName.equalsIgnoreCase(moderator)) {
-                return lease;
-            }
-        }
-        return null;
     }
 
     private void recoverInterruptedPunishments(Connection connection) throws SQLException {

@@ -103,6 +103,10 @@ messages:
     - '&7'
     - '&#86e96e ✔  &#6dbf58|  &#86e96e&lCloverReports &#86e96eуспешно перезагружен!'
     - '&7'
+  reload-started:
+    - '&7'
+    - '&#86e96e ⏳  &#6dbf58|  &#86e96eПерезагрузка CloverReports началась'
+    - '&7'
   reload-error:
     - '&7'
     - '&#c72b2b ❌  &#ff9089|  &#ff5a5aНе удалось перезагрузить CloverReports'

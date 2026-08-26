@@ -45,7 +45,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Test, build, compare JAR with sources and hash it
-        run: ./gradlew clean test writeArtifactChecksum --no-daemon --dependency-verification strict
+        run: ./gradlew clean build --no-daemon --dependency-verification strict --warning-mode all
 
       - name: Upload verified build
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

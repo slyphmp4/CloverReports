@@ -3,6 +3,7 @@ package com.slyph.cloverreports.database;
 import com.slyph.cloverreports.managers.ReportManager;
 import com.slyph.cloverreports.models.Report;
 import com.slyph.cloverreports.models.ReportPage;
+import com.slyph.cloverreports.models.ReportedPlayerIndex;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,6 +68,11 @@ final class DatabaseManagerIntegrationTest {
         assertEquals(14, firstPage.getReports().size());
         assertEquals(2, lastPage.getPage());
         assertEquals(3, lastPage.getReports().size());
+
+        ReportedPlayerIndex index = reportManager.getReportedPlayerIndex(ReportManager.STATUS_PENDING, 10).orElseThrow();
+        assertEquals(31, index.getTotalCases());
+        assertEquals(10, index.getEntries().size());
+        assertTrue(index.getEntries().stream().allMatch(entry -> entry.caseCount() == 1));
     }
 
     @Test

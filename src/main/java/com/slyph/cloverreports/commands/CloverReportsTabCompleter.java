@@ -19,10 +19,10 @@ import java.util.Set;
 
 public final class CloverReportsTabCompleter implements TabCompleter {
 
-    private final ReportManager reportManager;
+    private final ReportSuggestionCache suggestionCache;
 
-    public CloverReportsTabCompleter(ReportManager reportManager) {
-        this.reportManager = reportManager;
+    public CloverReportsTabCompleter(ReportSuggestionCache suggestionCache) {
+        this.suggestionCache = suggestionCache;
     }
 
     @Override
@@ -38,7 +38,7 @@ public final class CloverReportsTabCompleter implements TabCompleter {
         }
         if (args[0].equalsIgnoreCase("note") && sender.hasPermission("cloverreports.note")) {
             if (args.length == 2) {
-                return reportManager.getReportedPlayers(ReportManager.STATUS_PENDING, args[1]);
+                return suggestionCache.suggest(ReportManager.STATUS_PENDING, args[1]);
             }
             if (args.length == 3 && sender.hasPermission("cloverreports.note.clear-all")
                     && "clear".startsWith(args[2].toLowerCase(Locale.ROOT))) {
@@ -129,10 +129,10 @@ public final class CloverReportsTabCompleter implements TabCompleter {
     }
 
     private void addPlayers(Set<String> result, String prefix, String input) {
-        for (String player : reportManager.getReportedPlayers(ReportManager.STATUS_PENDING, input)) {
+        for (String player : suggestionCache.suggest(ReportManager.STATUS_PENDING, input)) {
             result.add(prefix + player);
         }
-        for (String player : reportManager.getReportedPlayers(ReportManager.STATUS_RESOLVED, input)) {
+        for (String player : suggestionCache.suggest(ReportManager.STATUS_RESOLVED, input)) {
             result.add(prefix + player);
         }
     }

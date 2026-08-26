@@ -8,12 +8,10 @@ commands:
   report:
     description: Подать жалобу через GUI
     usage: /<command> <игрок>
-    permission: cloverreports.report
   viewreports:
     description: Просмотр дел и истории
     usage: /<command> [страница|history|player]
     aliases: [rs, reports]
-    permission: cloverreports.view
   cloverreports:
     description: Управление CloverReports
     usage: /<command> reload|backup|note|logs|export

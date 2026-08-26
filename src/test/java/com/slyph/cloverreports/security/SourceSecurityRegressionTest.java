@@ -44,6 +44,16 @@ final class SourceSecurityRegressionTest {
     }
 
     @Test
+    void tabCompletersReadOnlyTheAsynchronousSuggestionSnapshot() throws Exception {
+        for (String fileName : List.of("CloverReportsTabCompleter.java", "ViewReportsTabCompleter.java")) {
+            String source = Files.readString(Path.of("src/main/java/com/slyph/cloverreports/commands", fileName));
+            assertTrue(source.contains("ReportSuggestionCache"), fileName);
+            assertFalse(source.contains("getReportedPlayers("), fileName);
+            assertFalse(source.contains("getReportedPlayerCount("), fileName);
+        }
+    }
+
+    @Test
     void pinsBuildSupplyChainAndOfficialGradleWrapper() throws Exception {
         List<String> unpinnedActions = new ArrayList<>();
         try (var workflows = Files.walk(Path.of(".github", "workflows"))) {

@@ -46,6 +46,12 @@ public final class DatabaseManager {
         this(plugin, plugin.getLogger(), null);
     }
 
+    public static DatabaseManager fromCurrentConfig(CloverReports plugin) {
+        Objects.requireNonNull(plugin, "plugin");
+        DatabaseManager loader = new DatabaseManager(plugin, plugin.getLogger(), null);
+        return new DatabaseManager(plugin, plugin.getLogger(), loader.loadSettings());
+    }
+
     private DatabaseManager(CloverReports plugin, Logger logger, Settings fixedSettings) {
         this.plugin = plugin;
         this.logger = Objects.requireNonNull(logger, "logger");
@@ -105,7 +111,7 @@ public final class DatabaseManager {
         try (Connection connection = getConnection()) {
             Settings settings = requireSettings();
             configureConnection(connection, settings);
-            boolean schemaLock = settings.mysql && acquireSchemaLock(connection);
+            boolean schemaLock = settings.mysql && acquireSchemaLock(connection, settings.schemaLockTimeoutSeconds);
             try {
                 createReportsTable(connection, settings.mysql);
                 createLogsTable(connection, settings.mysql);
@@ -131,10 +137,10 @@ public final class DatabaseManager {
         }
     }
 
-    private boolean acquireSchemaLock(Connection connection) throws SQLException {
+    private boolean acquireSchemaLock(Connection connection, int timeoutSeconds) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("SELECT GET_LOCK(?, ?)")) {
             statement.setString(1, "cloverreports_schema_v2");
-            statement.setInt(2, plugin == null ? 30 : Math.max(5, plugin.getConfig().getInt("mysql.schema-lock-timeout-seconds", 120)));
+            statement.setInt(2, timeoutSeconds);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (!resultSet.next() || resultSet.getInt(1) != 1) {
                     throw new SQLException("Timed out waiting for CloverReports schema lock");
@@ -240,7 +246,8 @@ public final class DatabaseManager {
                     Math.max(2, plugin.getConfig().getInt("mysql.maximum-pool-size", 10)),
                     connectionTimeout,
                     Math.max(1_000, plugin.getConfig().getInt("mysql.socket-timeout-ms", 10_000)),
-                    useSsl
+                    useSsl,
+                    Math.max(5, plugin.getConfig().getInt("mysql.schema-lock-timeout-seconds", 120))
             );
         }
 
@@ -1020,8 +1027,9 @@ public final class DatabaseManager {
         private final long connectionTimeoutMillis;
         private final int socketTimeoutMillis;
         private final boolean useSsl;
+        private final int schemaLockTimeoutSeconds;
 
-        private Settings(boolean mysql, Path sqliteFile, Path dataFolder, String host, int port, String database, String username, String password, int maximumPoolSize, long connectionTimeoutMillis, int socketTimeoutMillis, boolean useSsl) {
+        private Settings(boolean mysql, Path sqliteFile, Path dataFolder, String host, int port, String database, String username, String password, int maximumPoolSize, long connectionTimeoutMillis, int socketTimeoutMillis, boolean useSsl, int schemaLockTimeoutSeconds) {
             this.mysql = mysql;
             this.sqliteFile = sqliteFile;
             this.dataFolder = dataFolder;
@@ -1034,14 +1042,15 @@ public final class DatabaseManager {
             this.connectionTimeoutMillis = connectionTimeoutMillis;
             this.socketTimeoutMillis = socketTimeoutMillis;
             this.useSsl = useSsl;
+            this.schemaLockTimeoutSeconds = schemaLockTimeoutSeconds;
         }
 
         private static Settings sqlite(Path sqliteFile, Path dataFolder, long connectionTimeoutMillis) {
-            return new Settings(false, sqliteFile, dataFolder, null, 0, null, null, null, 1, connectionTimeoutMillis, 0, false);
+            return new Settings(false, sqliteFile, dataFolder, null, 0, null, null, null, 1, connectionTimeoutMillis, 0, false, 30);
         }
 
-        private static Settings mysql(String host, int port, String database, String username, String password, int maximumPoolSize, long connectionTimeoutMillis, int socketTimeoutMillis, boolean useSsl) {
-            return new Settings(true, null, null, host, port, database, username, password, maximumPoolSize, connectionTimeoutMillis, socketTimeoutMillis, useSsl);
+        private static Settings mysql(String host, int port, String database, String username, String password, int maximumPoolSize, long connectionTimeoutMillis, int socketTimeoutMillis, boolean useSsl, int schemaLockTimeoutSeconds) {
+            return new Settings(true, null, null, host, port, database, username, password, maximumPoolSize, connectionTimeoutMillis, socketTimeoutMillis, useSsl, schemaLockTimeoutSeconds);
         }
     }
 }

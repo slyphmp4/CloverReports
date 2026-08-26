@@ -26,13 +26,13 @@ CloverReports — Paper-плагин для системы жалоб и мод�
 Linux/macOS:
 
 ```bash
-./gradlew clean test writeArtifactChecksum
+./gradlew clean build --dependency-verification strict --warning-mode all
 ```
 
 Windows:
 
 ```powershell
-.\gradlew.bat clean test writeArtifactChecksum
+.\gradlew.bat clean build --dependency-verification strict --warning-mode all
 ```
 
 Готовый JAR появится в `build/libs/`. Задача `verifyJarContents` побайтно сверяет классы и ресурсы проекта с содержимым shaded JAR и создаёт полный манифест SHA-256 в `build/reports/jar-content-manifest.sha256`; `writeArtifactChecksum` дополнительно создаёт `build/checksums/SHA256SUMS`.
@@ -68,6 +68,18 @@ Windows:
 - ввод из компонентного чата переводится в plain text через `PlainTextComponentSerializer`, совместимый с Adventure 5;
 - удалена неиспользуемая зависимость Authlib;
 - тест валидации ресурсов обновлён под `api-version: 26.2`.
+
+## Обновление с предыдущих версий
+
+- Миграции старой схемы БД выполняются транзакционно и отмечаются в `cloverreports_meta`; повторный запуск не дублирует дела, заметки или репорты.
+- Старые секции `messages`, `gui`, `report.reasons` и `actions.ban-reason` переносятся в актуальные файлы при первом обнаружении, после чего удаляются из исходного места.
+- Удалять миграции до окончания поддержки обновления с `v1.2.x` нельзя: они являются частью совместимости, а не runtime fallback.
+
+## Производительность
+
+- tab completion никогда не обращается к JDBC на основном потоке: подсказки и количества страниц читаются из атомарного снимка, обновляемого асинхронно;
+- `/cloverreports reload` подключает и мигрирует новую БД вне основного потока, после чего атомарно заменяет готовый пул;
+- при выключении освобождение review lease и закрытие пула выполняются последовательно в отдельном lifecycle executor.
 
 ## Security hardening
 

@@ -218,7 +218,8 @@ public final class ReportReasons {
         } catch (IOException exception) {
             try {
                 Files.deleteIfExists(temporary.toPath());
-            } catch (IOException ignored) {
+            } catch (IOException cleanupException) {
+                exception.addSuppressed(cleanupException);
             }
             throw new IllegalStateException("Cannot save reasons.yml", exception);
         }

@@ -20,7 +20,6 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -53,7 +52,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-@SuppressWarnings("deprecation")
 public final class GUIListener implements Listener {
 
     private static final String NOTE_INPUT_OWNER = "moderator-note";
@@ -812,9 +810,9 @@ public final class GUIListener implements Listener {
                 .hoverEvent(HoverEvent.showText(Component.text(url)));
         boolean appended = false;
         for (String line : lines) {
-            String stripped = ChatColor.stripColor(line);
+            String stripped = ChatUtil.stripColor(line);
             Component component = deserialize(line);
-            if (!appended && stripped != null && !stripped.isBlank()) {
+            if (!appended && !stripped.isBlank()) {
                 component = component.append(Component.space()).append(link);
                 appended = true;
             }

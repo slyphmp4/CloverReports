@@ -20,10 +20,10 @@ import java.util.Set;
 
 public final class ViewReportsTabCompleter implements TabCompleter {
 
-    private final ReportManager reportManager;
+    private final ReportSuggestionCache suggestionCache;
 
-    public ViewReportsTabCompleter(ReportManager reportManager) {
-        this.reportManager = reportManager;
+    public ViewReportsTabCompleter(ReportSuggestionCache suggestionCache) {
+        this.suggestionCache = suggestionCache;
     }
 
     @Override
@@ -40,7 +40,7 @@ public final class ViewReportsTabCompleter implements TabCompleter {
         }
         if (args[0].equalsIgnoreCase("player")) {
             if (args.length == 2) {
-                return reportManager.getReportedPlayers(ReportManager.STATUS_PENDING, args[1]);
+                return suggestionCache.suggest(ReportManager.STATUS_PENDING, args[1]);
             }
             if (args.length == 3) {
                 return pageSuggestions(ReportManager.STATUS_PENDING, args[1], args[2]);
@@ -59,7 +59,7 @@ public final class ViewReportsTabCompleter implements TabCompleter {
         Set<String> result = new LinkedHashSet<>();
         if (lower.startsWith("player=")) {
             String value = input.substring(input.indexOf('=') + 1);
-            for (String player : reportManager.getReportedPlayers(ReportManager.STATUS_RESOLVED, value)) {
+            for (String player : suggestionCache.suggest(ReportManager.STATUS_RESOLVED, value)) {
                 result.add("player=" + player);
             }
             return new ArrayList<>(result);
@@ -115,13 +115,13 @@ public final class ViewReportsTabCompleter implements TabCompleter {
         addKey(result, used, "to", input);
         addKey(result, used, "page", input);
         if (args.length == 2) {
-            result.addAll(reportManager.getReportedPlayers(ReportManager.STATUS_RESOLVED, input));
+            result.addAll(suggestionCache.suggest(ReportManager.STATUS_RESOLVED, input));
         }
         return new ArrayList<>(result);
     }
 
     private List<String> pageSuggestions(String status, String player, String input) {
-        int count = reportManager.getReportedPlayerCount(status, player);
+        int count = suggestionCache.caseCount(status, player);
         int pages = Math.max(1, (int) Math.ceil(count / (double) ReportsGUI.getReportsPerPage()));
         List<String> result = new ArrayList<>();
         for (int page = 1; page <= Math.min(pages, 100); page++) {
