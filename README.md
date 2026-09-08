@@ -1,29 +1,327 @@
+<div align="center">
+
 # CloverReports
 
-CloverReports — Paper-плагин для системы жалоб и модерации на Minecraft-сервере.
+**A report and moderation workflow for Paper servers — from player submission to staff review, evidence, actions and audit history.**
 
-Эта ветка проекта портирована на **Minecraft / Paper 26.2** и **Java 25**.
+[![Build](https://github.com/slyphmp4/CloverReports/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/slyphmp4/CloverReports/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/slyphmp4/CloverReports?style=flat-square)](https://github.com/slyphmp4/CloverReports/releases)
+[![Java](https://img.shields.io/badge/Java-25-555?style=flat-square)](https://openjdk.org/)
+[![Paper](https://img.shields.io/badge/Paper-26.2-555?style=flat-square)](https://papermc.io/)
+[![Author](https://img.shields.io/badge/author-slyph-555?style=flat-square)](https://github.com/slyphmp4)
 
-## Возможности
+[Releases](https://github.com/slyphmp4/CloverReports/releases) · [Builds](https://github.com/slyphmp4/CloverReports/actions) · [Changelog](https://github.com/slyphmp4/CloverReports/blob/main/CHANGELOG.md) · [Issues](https://github.com/slyphmp4/CloverReports/issues)
 
-- отправка жалоб через GUI (`/report <игрок>`);
-- просмотр активных дел и истории (`/viewreports`, алиасы `/rs`, `/reports`);
-- модераторские действия через GUI;
-- заметки модераторов и журнал действий;
-- прикрепление URL-доказательств;
-- экспорт логов;
-- SQLite и MySQL;
-- резервные копии базы данных;
-- настраиваемые сообщения, причины репортов и GUI.
+</div>
 
-## Требования
+---
 
-- Minecraft / Paper **26.2**;
-- Java **25**.
+## Overview
 
-## Сборка
+CloverReports is built around **cases**, not a disposable list of `/report` messages.
 
-Linux/macOS:
+Players submit reports through a GUI. Related reports are collected into a case, staff review the case through a separate interface, and moderation actions, notes and evidence stay attached to the history instead of disappearing after the report is closed.
+
+That makes it suitable for a small survival server as well as a multi-server setup sharing one MySQL database.
+
+### What it covers
+
+| Stage | CloverReports provides |
+| --- | --- |
+| Submission | Report GUI, configurable reasons, evidence links and cooldowns |
+| Queue | Active cases, pagination, per-player history and staff notifications |
+| Review | Review sessions, evidence viewing, moderator notes and case context |
+| Action | Teleport, punishment command and case closing from the GUI |
+| Audit | Action logs, case history and JSON/CSV export |
+| Storage | Local SQLite or shared MySQL with migrations and backups |
+| Safety | Quotas, URL validation, known-player checks and path restrictions |
+
+---
+
+## Requirements
+
+| Component | Version / notes |
+| --- | --- |
+| Minecraft / Paper | **26.2** |
+| Java | **25** |
+| Paper API build target | `26.2.build.117-stable` by default |
+
+CloverReports bundles the JDBC libraries it needs for SQLite and MySQL.
+
+When using Java 25 with the bundled SQLite driver, start the server with:
+
+```text
+--enable-native-access=ALL-UNNAMED
+```
+
+This allows SQLite JDBC to load its native library without the Java native-access warning.
+
+---
+
+## Installation
+
+1. Download a verified JAR from [Releases](https://github.com/slyphmp4/CloverReports/releases), or build it from source.
+2. Put the JAR into the server's `plugins/` directory.
+3. Start Paper 26.2 on Java 25.
+4. Let CloverReports create its files under `plugins/CloverReports/`.
+5. Review `config.yml`, `reasons.yml`, `gui.yml` and `messages.yml` before opening the system to players.
+
+For a local server, the default configuration works with SQLite and does not require MySQL.
+
+---
+
+## Player flow
+
+A report begins with:
+
+```text
+/report <player>
+```
+
+The command opens the submission interface rather than expecting players to memorize reason IDs or command syntax.
+
+A typical flow is:
+
+```text
+Player selects a target
+        ↓
+Chooses a configured reason
+        ↓
+Optionally attaches evidence
+        ↓
+Report is added to a case
+        ↓
+Staff reviews the case
+        ↓
+Case is resolved, acted on or closed
+        ↓
+History and moderation logs remain available
+```
+
+By default, CloverReports requires a target to be either online or already known to the plugin. This prevents arbitrary fake offline names from filling the database.
+
+---
+
+## Commands
+
+| Command | Description |
+| --- | --- |
+| `/report <player>` | Open the report submission GUI |
+| `/viewreports` | Open active report cases |
+| `/viewreports <page>` | Open a specific page |
+| `/viewreports history ...` | Browse resolved/history data with filters |
+| `/viewreports player ...` | Browse cases for a player |
+| `/cloverreports reload` | Reload configuration and storage settings |
+| `/cloverreports backup` | Create a database backup |
+| `/cloverreports note ...` | Work with moderator notes |
+| `/cloverreports logs ...` | Browse moderation logs |
+| `/cloverreports export ...` | Export log data |
+
+Aliases:
+
+```text
+/viewreports → /rs, /reports
+/cloverreports → /cr
+```
+
+Tab completion is implemented for report targets, history filters and administrative subcommands without performing synchronous JDBC queries on the server thread.
+
+---
+
+## Permissions
+
+| Permission | Default | Purpose |
+| --- | --- | --- |
+| `cloverreports.report` | Everyone | Submit reports |
+| `cloverreports.report.evidence` | Everyone | Attach evidence URLs |
+| `cloverreports.report.cooldown.bypass` | OP | Bypass report cooldown |
+| `cloverreports.report.false.bypass` | OP | Bypass false-report restrictions |
+| `cloverreports.view` | OP | View cases and history |
+| `cloverreports.evidence.view` | OP | View attached evidence |
+| `cloverreports.notify` | OP | Receive report notifications |
+| `cloverreports.reload` | OP | Reload CloverReports |
+| `cloverreports.backup` | OP | Create a backup |
+| `cloverreports.note` | OP | Manage moderator notes |
+| `cloverreports.note.clear-all` | OP | Remove all notes from a case |
+| `cloverreports.logs` | OP | View report/moderation logs |
+| `cloverreports.export` | OP | Export logs |
+| `cloverreports.action.delete` | OP | Close/delete a case through the GUI |
+| `cloverreports.action.teleport` | OP | Teleport through the moderation GUI |
+| `cloverreports.action.ban` | OP | Run the configured punishment action |
+
+---
+
+## Configuration
+
+CloverReports splits configuration by responsibility instead of keeping one giant YAML file.
+
+```text
+plugins/CloverReports/
+├── config.yml
+├── gui.yml
+├── messages.yml
+├── reasons.yml
+├── reports.db          # default local database
+├── backups/
+└── exports/            # when log exports are created
+```
+
+### `config.yml`
+
+Controls server identity, storage, report limits, evidence policy, staff-review behavior, cleanup and exports.
+
+The default storage setup is intentionally simple:
+
+```yaml
+storage:
+  type: "local"
+
+sqlite:
+  file: "reports.db"
+```
+
+For a shared network, switch to MySQL and configure the `mysql` section.
+
+### `reasons.yml`
+
+Defines the reasons players can choose in the report submission GUI.
+
+### `gui.yml`
+
+Controls menu titles, items, names, lore and layout for the player and moderator interfaces.
+
+### `messages.yml`
+
+Contains user-facing messages and moderation text separately from technical settings.
+
+---
+
+## Evidence policy
+
+Evidence URLs are treated as untrusted input.
+
+The default policy requires HTTPS, port 443 and a known host:
+
+```yaml
+report:
+  evidence:
+    max-url-length: 2048
+    require-https: true
+    allow-any-host: false
+    allowed-ports: [443]
+    allowed-hosts:
+      - "youtube.com"
+      - "youtu.be"
+      - "imgur.com"
+      - "streamable.com"
+      - "medal.tv"
+      - "clips.twitch.tv"
+      - "cdn.discordapp.com"
+      - "media.discordapp.net"
+```
+
+The allowlist is configurable. Setting `allow-any-host: true` is an explicit opt-out from the host restriction rather than an accidental empty-list fallback.
+
+---
+
+## Abuse controls
+
+The report path has several independent limits so a single account cannot cheaply fill the moderation queue.
+
+Defaults include:
+
+```yaml
+report:
+  cooldown-seconds: 60
+  attempt-min-interval-ms: 1500
+  max-reports-per-case: 100
+  max-active-cases: 2000
+  max-active-cases-per-reporter: 10
+  max-reports-per-window: 30
+  quota-window-seconds: 86400
+  require-known-player: true
+```
+
+CloverReports also has configurable false-report handling based on reviewed-report statistics.
+
+On MySQL, queue limits and quotas are enforced inside database transactions so several Paper servers sharing one database do not each apply an independent local limit.
+
+---
+
+## Moderation workflow
+
+Staff can work from the report list instead of switching between unrelated commands.
+
+The review system supports:
+
+- active and historical cases;
+- review-session leases so concurrent staff work is handled consistently;
+- moderator notes;
+- attached evidence;
+- teleport actions;
+- configurable punishment commands;
+- explicit close reasons;
+- persistent action logs.
+
+Input used for evidence and moderator notes is captured before normal chat formatting, so it does not leak into ordinary chat when CloverChat or another formatter is installed.
+
+---
+
+## Storage
+
+### SQLite
+
+`storage.type: local` uses a SQLite database inside the CloverReports data directory. It is the default and best choice for a single server.
+
+### MySQL
+
+MySQL is intended for shared or remote storage. CloverReports uses HikariCP and performs schema migration before swapping a reloaded pool into active use.
+
+For remote MySQL hosts, insecure `use-ssl: false` is rejected. The connection path is designed around verified TLS rather than silently downgrading a remote database connection.
+
+### Migrations
+
+Older database schemas are migrated transactionally and migration state is recorded so a restart does not duplicate reports, notes or cases.
+
+Legacy configuration sections from older releases are also moved into the current split files when applicable.
+
+---
+
+## Cleanup and retention
+
+Resolved data does not have to grow forever. The defaults are:
+
+```yaml
+cleanup:
+  enabled: true
+  pending-days: 14
+  resolved-days: 30
+  logs-days: 90
+```
+
+A pending case with an active moderation review is protected from cleanup while that review is valid.
+
+---
+
+## Log export
+
+Moderation logs can be exported in structured formats including JSON and CSV. Export size and batch behavior are bounded in configuration:
+
+```yaml
+export:
+  max-rows: 100000
+  batch-size: 1000
+```
+
+Generated paths are restricted to the CloverReports data directory rather than accepting arbitrary filesystem locations.
+
+---
+
+## Build and release integrity
+
+The project uses Gradle dependency verification, reproducible archive ordering and additional checks around the shaded JAR.
+
+Linux / macOS:
 
 ```bash
 ./gradlew clean build --dependency-verification strict --warning-mode all
@@ -35,69 +333,21 @@ Windows:
 .\gradlew.bat clean build --dependency-verification strict --warning-mode all
 ```
 
-Готовый JAR появится в `build/libs/`. Задача `verifyJarContents` побайтно сверяет классы и ресурсы проекта с содержимым shaded JAR и создаёт полный манифест SHA-256 в `build/reports/jar-content-manifest.sha256`; `writeArtifactChecksum` дополнительно создаёт `build/checksums/SHA256SUMS`.
+The build verifies that project classes and resources inside the shaded JAR match the local build outputs and writes a SHA-256 content manifest.
 
-## Установка
-
-1. Соберите проект или возьмите готовый JAR из GitHub Actions.
-2. Поместите JAR в папку `plugins/` сервера.
-3. Запустите сервер на Java 25 с `--enable-native-access=ALL-UNNAMED` (это штатно требуется SQLite JDBC для загрузки нативной библиотеки без предупреждений).
-4. После первого запуска настройте файлы в `plugins/CloverReports/`.
-
-## Основные команды
-
-| Команда | Назначение |
-| --- | --- |
-| `/report <игрок>` | Подать жалобу через GUI |
-| `/viewreports` | Просмотр дел и истории |
-| `/cloverreports reload` | Перезагрузить конфигурацию |
-| `/cloverreports backup` | Создать резервную копию |
-| `/cloverreports note` | Работа с заметками модераторов |
-| `/cloverreports logs` | Просмотр логов |
-| `/cloverreports export` | Экспорт логов |
-
-## Что изменено для 26.2
-
-- Paper API перенесён со старой ветки `1.16.5` на `io.papermc.paper:paper-api:26.2`;
-- `api-version` обновлён до `26.2`;
-- toolchain и bytecode target обновлены до Java 25;
-- Gradle wrapper обновлён до 9.7.1;
-- Shadow переведён на актуальный plugin id `com.gradleup.shadow`;
-- на Paper ввод из чата обрабатывается через `AsyncChatEvent`, а для Cardboard 26.x добавлен совместимый fallback через `AsyncPlayerChatEvent`;
-- Paper GUI использует Adventure Component API; Cardboard GUI проходит через изолированный compatibility factory из-за возвращающего `null` Adventure-overload в Cardboard 26.x;
-- названия и lore GUI-предметов явно отключают стандартный для custom item text курсив;
-- служебный ввод доказательств и модераторских заметок перехватывается на `LOWEST`, до чат-форматтеров вроде CloverChat, чтобы сообщение не уходило в обычный чат;
-- ввод из компонентного чата переводится в plain text через `PlainTextComponentSerializer`, совместимый с Adventure 5;
-- удалена неиспользуемая зависимость Authlib;
-- тест валидации ресурсов обновлён под `api-version: 26.2`.
-
-## Обновление с предыдущих версий
-
-- Миграции старой схемы БД выполняются транзакционно и отмечаются в `cloverreports_meta`; повторный запуск не дублирует дела, заметки или репорты.
-- Старые секции `messages`, `gui`, `report.reasons` и `actions.ban-reason` переносятся в актуальные файлы при первом обнаружении, после чего удаляются из исходного места.
-- Удалять миграции до окончания поддержки обновления с `v1.2.x` нельзя: они являются частью совместимости, а не runtime fallback.
-
-## Производительность
-
-- tab completion никогда не обращается к JDBC на основном потоке: подсказки и количества страниц читаются из атомарного снимка, обновляемого асинхронно;
-- `/cloverreports reload` подключает и мигрирует новую БД вне основного потока, после чего атомарно заменяет готовый пул;
-- при выключении освобождение review lease и закрытие пула выполняются последовательно в отдельном lifecycle executor.
-
-## Security hardening
-
-- неизвестные offline-ники не принимаются: UUID должен быть получен онлайн или ранее зарегистрирован плагином (`report.require-known-player`);
-- cooldown проверяется до запросов статистики, а постоянные квоты ограничивают число активных дел и жалоб за окно времени;
-- глобальный лимит очереди и квоты применяются внутри DB-транзакции с общей блокировкой, в том числе при нескольких Paper-серверах на одной MySQL;
-- `PENDING`-дела старше `cleanup.pending-days` удаляются ежедневно, но дело с действующей модераторской сессией не затрагивается;
-- evidence URL по умолчанию разрешены только для HTTPS и доверенных платформ из `report.evidence.allowed-hosts`; пустой список безопасно откатывается к встроенному allowlist, а явный opt-out — `allow-any-host: true`;
-- удалённый MySQL нельзя запустить с `mysql.use-ssl: false`; для remote host используется `sslMode=VERIFY_IDENTITY`;
-- SQLite, backup и export пути ограничены директорией плагина;
-- Gradle проверяет SHA-256 всех зависимостей, wrapper имеет официальный hash, а GitHub Actions закреплены полными commit SHA;
-- release workflow публикует JAR, `SHA256SUMS`, манифест содержимого и GitHub build-provenance attestation.
-
-Для релизного JAR сначала проверьте `SHA256SUMS`, затем provenance:
+Release artifacts also include checksums. When provenance is available, the published JAR can be verified with GitHub CLI:
 
 ```bash
 sha256sum --check SHA256SUMS
 gh attestation verify CloverReports-*.jar --repo slyphmp4/CloverReports
 ```
+
+---
+
+## Project notes
+
+CloverReports is written for the current Paper 26.2 API and Java 25. The compatibility layer also isolates the inventory/chat differences needed by Cardboard-based 26.x environments instead of spreading compatibility branches throughout the moderation logic.
+
+For release history, see [CHANGELOG.md](https://github.com/slyphmp4/CloverReports/blob/main/CHANGELOG.md).
+
+CloverReports is maintained by **slyph**.
