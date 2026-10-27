@@ -36,7 +36,7 @@ repositories {
 dependencies {
     compileOnly "io.papermc.paper:paper-api:${paperApiVersion}"
     implementation 'com.zaxxer:HikariCP:7.1.0'
-    implementation('com.mysql:mysql-connector-j:26.7.0') {
+    implementation('com.mysql:mysql-connector-j:26.10.0') {
         exclude group: 'com.google.protobuf', module: 'protobuf-java'
     }
     implementation 'org.xerial:sqlite-jdbc:3.53.2.1'
