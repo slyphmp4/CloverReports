@@ -1,0 +1,123 @@
+name: Publish CloverReports v1.4.0
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publish-v1.4.0.yml
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: cloverreports-release-v1.4.0
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'slyphmp4/CloverReports' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Java 25
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: '25'
+          check-latest: false
+          cache: gradle
+          cache-dependency-path: |
+            build.gradle
+            settings.gradle
+            gradle.properties
+            gradle/verification-metadata.xml
+            gradle/wrapper/gradle-wrapper.properties
+
+      - name: Verify Gradle wrapper binary
+        shell: bash
+        run: echo '7a9ce74cff467ca1bf60a4fcd9f05185acceda4d0f382434d393e17864262c5d  gradle/wrapper/gradle-wrapper.jar' | sha256sum --check --strict
+
+      - name: Build and test against Paper 26.2 API
+        run: |
+          chmod +x gradlew
+          ./gradlew clean test -PpaperApiVersion=26.2.build.117-stable --no-daemon --dependency-verification strict --warning-mode all
+
+      - name: Build, test and verify shaded release JAR against Paper 26.3 API
+        run: ./gradlew clean build --no-daemon --dependency-verification strict --warning-mode all
+
+      - name: Verify exact previously checked binary and metadata
+        shell: bash
+        run: |
+          echo 'd4d1209f6eb71f6f2694b39fedfed9e35f5cd3ca09fe2e138d437afe048eae95  build/libs/CloverReports-1.4.0.jar' | sha256sum --check --strict
+          (cd build/libs && sha256sum --check --strict ../checksums/SHA256SUMS)
+          unzip -p build/libs/CloverReports-1.4.0.jar plugin.yml | grep -qx 'version: 1.4.0'
+          test -s build/reports/jar-content-manifest.sha256
+
+      - name: Check actual Paper 26.2 startup, SQLite and shutdown
+        run: bash ci/smoke-paper.sh 26.2 build/libs/CloverReports-1.4.0.jar
+
+      - name: Check actual Paper 26.3 startup, SQLite and shutdown
+        run: bash ci/smoke-paper.sh 26.3 build/libs/CloverReports-1.4.0.jar
+
+      - name: Check actual Fabric 26.3 + Cardboard 26.3.0 startup
+        run: bash ci/smoke-cardboard.sh build/libs/CloverReports-1.4.0.jar
+
+      - name: Attest release JAR provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: build/libs/CloverReports-1.4.0.jar
+
+      - name: Publish stable GitHub release with verified assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          tag='v1.4.0'
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $tag already exists; refusing to replace it" >&2
+            exit 1
+          fi
+          if git ls-remote --tags origin "refs/tags/$tag" | grep -q .; then
+            echo "Tag $tag already exists; refusing to move it" >&2
+            exit 1
+          fi
+          cat > "$RUNNER_TEMP/cloverreports-1.4.0-release-notes.md" <<'NOTES'
+          ## CloverReports 1.4.0 — Minecraft 26.3 support
+
+          Stable release of the report and moderation plugin for **Java 25**, **Paper 26.3**, and **Fabric 26.3 with slyphmp4/Cardboard 26.3.0**. Compatibility with **Paper 26.2** is retained.
+
+          ### What's changed
+          - Target pinned Paper API `26.3.build.255-stable`, preserving minimum plugin API version `26.2`.
+          - Keep Cardboard-specific inventory and legacy chat compatibility isolated.
+          - Pin SHA-256 checksums for 26.3 build dependencies, with strict Gradle verification.
+          - Require compilation, tests, JAR contents checks, checksum generation and runtime smoke tests in CI.
+
+          ### Verification
+          - Paper 26.2 and Paper 26.3: build/tests and real headless startup, plugin initialization, SQLite and clean shutdown.
+          - Fabric 26.3 + Cardboard 26.3.0 + Fabric API 0.166.2+26.3: real server startup, plugin enable, SQLite initialization and shutdown.
+          - Release artifact `CloverReports-1.4.0.jar` is byte-identical to the verified CI JAR.
+          - Published `SHA256SUMS` and `jar-content-manifest.sha256` are included.
+
+          **Note:** Headless checks do not replace in-game GUI, chat and moderator-action tests with real players. Test on a staging copy of your server before production deployment.
+
+          Full source changes: [PR #25](https://github.com/slyphmp4/CloverReports/pull/25).
+          NOTES
+          gh release create "$tag" \
+            build/libs/CloverReports-1.4.0.jar \
+            build/checksums/SHA256SUMS \
+            build/reports/jar-content-manifest.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "CloverReports 1.4.0" \
+            --notes-file "$RUNNER_TEMP/cloverreports-1.4.0-release-notes.md" \
+            --latest
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url,tagName,isPrerelease,assets
