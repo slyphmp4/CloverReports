@@ -346,7 +346,7 @@ gh attestation verify CloverReports-*.jar --repo slyphmp4/CloverReports
 
 ## Project notes
 
-CloverReports 1.4.0 targets the Paper 26.3 API and Java 25. The plugin descriptor keeps `api-version: '26.2'` intentionally, so servers on 26.2 are not rejected by the loader. CI runs tests against the 26.2 API before building and testing against pinned 26.3. The compatibility layer isolates inventory/chat differences for Cardboard-based 26.x environments; production compatibility on a specific Cardboard fork must still be smoke-tested on a staging server.
+CloverReports 1.4.0 targets the Paper 26.3 API and Java 25. The plugin descriptor keeps `api-version: '26.2'` intentionally, so servers on 26.2 are not rejected by the loader. CI runs tests against the 26.2 API before building and testing against pinned 26.3. The compatibility layer isolates inventory/chat differences for Cardboard-based 26.x environments. CI also starts a real Fabric 26.3 server using slyphmp4/Cardboard v26.3.0 and Fabric API 0.166.2+26.3, verifies CloverReports startup and SQLite initialization, and shuts down cleanly. GUI interactions, report submission, moderation commands and multi-player behavior still need staging-server testing before production deployment.
 
 For release history, see [CHANGELOG.md](https://github.com/slyphmp4/CloverReports/blob/main/CHANGELOG.md).
 
