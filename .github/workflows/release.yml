@@ -40,7 +40,10 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Test, build, compare JAR with sources and hash it
+      - name: Test compatibility against Paper 26.2 API
+        run: ./gradlew clean test -PpaperApiVersion=26.2.build.117-stable --no-daemon --dependency-verification strict --warning-mode all
+
+      - name: Test, build, compare 26.3 JAR with sources and hash it
         run: ./gradlew clean build --no-daemon --dependency-verification strict --warning-mode all
 
       - name: Stage release bundle
