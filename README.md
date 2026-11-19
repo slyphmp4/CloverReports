@@ -7,7 +7,7 @@
 [![Build](https://github.com/slyphmp4/CloverReports/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/slyphmp4/CloverReports/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/slyphmp4/CloverReports?style=flat-square)](https://github.com/slyphmp4/CloverReports/releases)
 [![Java](https://img.shields.io/badge/Java-25-555?style=flat-square)](https://openjdk.org/)
-[![Paper](https://img.shields.io/badge/Paper-26.2-555?style=flat-square)](https://papermc.io/)
+[![Paper](https://img.shields.io/badge/Paper-26.2%20%7C%2026.3-555?style=flat-square)](https://papermc.io/)
 [![Author](https://img.shields.io/badge/author-slyph-555?style=flat-square)](https://github.com/slyphmp4)
 
 [Releases](https://github.com/slyphmp4/CloverReports/releases) · [Builds](https://github.com/slyphmp4/CloverReports/actions) · [Changelog](https://github.com/slyphmp4/CloverReports/blob/main/CHANGELOG.md) · [Issues](https://github.com/slyphmp4/CloverReports/issues)
@@ -42,9 +42,9 @@ That makes it suitable for a small survival server as well as a multi-server set
 
 | Component | Version / notes |
 | --- | --- |
-| Minecraft / Paper | **26.2** |
+| Minecraft / Paper | **26.2 and 26.3** (Paper) |
 | Java | **25** |
-| Paper API build target | `26.2.build.117-stable` by default |
+| Paper API build target | `26.3.build.255-stable` (pinned; 26.2 checked in CI) |
 
 CloverReports bundles the JDBC libraries it needs for SQLite and MySQL.
 
@@ -62,7 +62,7 @@ This allows SQLite JDBC to load its native library without the Java native-acces
 
 1. Download a verified JAR from [Releases](https://github.com/slyphmp4/CloverReports/releases), or build it from source.
 2. Put the JAR into the server's `plugins/` directory.
-3. Start Paper 26.2 on Java 25.
+3. Start Paper 26.3 (or the supported Paper 26.2 series) on Java 25.
 4. Let CloverReports create its files under `plugins/CloverReports/`.
 5. Review `config.yml`, `reasons.yml`, `gui.yml` and `messages.yml` before opening the system to players.
 
@@ -346,7 +346,7 @@ gh attestation verify CloverReports-*.jar --repo slyphmp4/CloverReports
 
 ## Project notes
 
-CloverReports is written for the current Paper 26.2 API and Java 25. The compatibility layer also isolates the inventory/chat differences needed by Cardboard-based 26.x environments instead of spreading compatibility branches throughout the moderation logic.
+CloverReports 1.4.0 targets the Paper 26.3 API and Java 25. The plugin descriptor keeps `api-version: '26.2'` intentionally, so servers on 26.2 are not rejected by the loader. CI runs tests against the 26.2 API before building and testing against pinned 26.3. The compatibility layer isolates inventory/chat differences for Cardboard-based 26.x environments. CI also starts a real Fabric 26.3 server using slyphmp4/Cardboard v26.3.0 and Fabric API 0.166.2+26.3, verifies CloverReports startup and SQLite initialization, and shuts down cleanly. GUI interactions, report submission, moderation commands and multi-player behavior still need staging-server testing before production deployment.
 
 For release history, see [CHANGELOG.md](https://github.com/slyphmp4/CloverReports/blob/main/CHANGELOG.md).
 

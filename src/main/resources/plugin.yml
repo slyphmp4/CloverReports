@@ -1,6 +1,7 @@
 name: CloverReports
 main: com.slyph.cloverreports.CloverReports
 version: ${version}
+# Minimum supported Paper API; the 26.3 build is also tested against Paper 26.2.
 api-version: '26.2'
 authors: [slyph]
 description: Плагин для репортов
