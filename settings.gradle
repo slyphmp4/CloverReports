@@ -1,7 +1,16 @@
 pluginManagement {
     repositories {
-        gradlePluginPortal()
         mavenCentral()
+        gradlePluginPortal()
+    }
+    resolutionStrategy {
+        eachPlugin {
+            // Use the implementation module directly so the plugin marker cannot
+            // resolve to different POM contents on Gradle Portal vs Maven Central.
+            if (requested.id.id == 'com.gradleup.shadow') {
+                useModule("com.gradleup.shadow:shadow-gradle-plugin:${requested.version}")
+            }
+        }
     }
 }
 
