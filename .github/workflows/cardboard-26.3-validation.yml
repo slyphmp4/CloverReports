@@ -1,0 +1,35 @@
+name: Cardboard 26.3 smoke validation
+
+on:
+  push:
+    branches: [port/minecraft-26.3]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cardboard-port-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cardboard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Java 25
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+      - name: Verify wrapper and build
+        run: |
+          echo '7a9ce74cff467ca1bf60a4fcd9f05185acceda4d0f382434d393e17864262c5d  gradle/wrapper/gradle-wrapper.jar' | sha256sum --check --strict
+          chmod +x gradlew
+          ./gradlew clean build --no-daemon --dependency-verification strict --warning-mode all
+      - name: Start Fabric 26.3 with Cardboard and CloverReports
+        run: bash ci/smoke-cardboard.sh build/libs/CloverReports-1.4.0.jar
