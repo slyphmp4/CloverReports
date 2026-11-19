@@ -50,6 +50,9 @@ jobs:
       - name: Test, build, compare JAR with 26.3 sources and hash it
         run: ./gradlew clean build --no-daemon --dependency-verification strict --warning-mode all
 
+      - name: Smoke test real Paper 26.3 startup and SQLite initialization
+        run: bash ci/smoke-paper.sh 26.3 build/libs/CloverReports-1.4.0.jar
+
       - name: Upload verified build
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
